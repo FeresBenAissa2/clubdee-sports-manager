@@ -1,0 +1,64 @@
+{
+  "version": "school-trim-1.0",
+  "modules": {
+    "auth-user-management": {
+      "name": "Auth & User Management",
+      "owner_slot": 1,
+      "routes": [
+        "/login",
+        "/register",
+        "/auth",
+        "/dashboard/admin/clubs",
+        "/dashboard/admin/coaches",
+        "/dashboard/admin/athletes",
+        "/dashboard/admin/create-user",
+        "/dashboard/admin/settings"
+      ]
+    },
+    "membership-approval": {
+      "name": "Membership Approval",
+      "owner_slot": 2,
+      "routes": [
+        "/register-membership",
+        "/pending-approval",
+        "/dashboard/coach/applications",
+        "/dashboard/athlete/applications"
+      ]
+    },
+    "training-attendance": {
+      "name": "Training & Attendance",
+      "owner_slot": 3,
+      "routes": [
+        "/dashboard/coach/sessions",
+        "/dashboard/coach/attendance",
+        "/dashboard/athlete/schedule",
+        "/dashboard/athlete/attendance",
+        "/dashboard/admin/sessions",
+        "/dashboard/admin/attendance"
+      ]
+    },
+    "performance-tracking": {
+      "name": "Performance Tracking",
+      "owner_slot": 4,
+      "routes": [
+        "/dashboard/coach/performance",
+        "/dashboard/athlete/performance"
+      ]
+    },
+    "announcements": {
+      "name": "Announcements",
+      "owner_slot": 5,
+      "routes": [
+        "/dashboard/coach/announcements",
+        "/dashboard/athlete/announcements"
+      ]
+    },
+    "tournaments": {
+      "name": "Tournaments",
+      "owner_slot": 6,
+      "routes": [
+        "/dashboard/coach/tournaments"
+      ]
+    }
+  }
+}

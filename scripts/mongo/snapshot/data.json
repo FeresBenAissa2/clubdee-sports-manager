@@ -1,0 +1,740 @@
+{
+ "exported_at": "2026-11-06T19:33:43.341Z",
+ "supabase_url": "https://ikvszvbzteyjsrjprimq.supabase.co",
+ "tables": {
+  "performance_records": [],
+  "announcement_reads": [],
+  "tournaments": [],
+  "performance_metrics": [],
+  "sports": [
+   {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "name": "Football",
+    "description": "Association football",
+    "icon_url": null,
+    "created_at": "2026-10-31T13:36:36.985816+00:00",
+    "updated_at": "2026-10-31T13:36:36.985816+00:00"
+   },
+   {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "name": "Basketball",
+    "description": "Indoor basketball",
+    "icon_url": null,
+    "created_at": "2026-10-31T13:36:36.985816+00:00",
+    "updated_at": "2026-10-31T13:36:36.985816+00:00"
+   },
+   {
+    "id": "00000000-0000-0000-0000-000000000003",
+    "name": "Volleyball",
+    "description": "Indoor volleyball",
+    "icon_url": null,
+    "created_at": "2026-10-31T13:36:36.985816+00:00",
+    "updated_at": "2026-10-31T13:36:36.985816+00:00"
+   }
+  ],
+  "login_sessions": [
+   {
+    "id": "21b14227-a0bd-4360-9e99-320948d23780",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T15:09:46.457+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T15:09:45.984897+00:00"
+   },
+   {
+    "id": "1f26f71a-5e2c-43a3-bc14-538e1d566d43",
+    "user_id": "fccda409-01a5-4a29-bd10-3918b93086ab",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T15:12:14.638+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T15:12:14.156283+00:00"
+   },
+   {
+    "id": "3dedde87-66cd-42c6-8393-1756ee60dcae",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T21:40:09.833+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T21:40:09.791476+00:00"
+   },
+   {
+    "id": "d5c52947-98dc-411d-a9a8-754d8f04acff",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T21:40:41.927+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T21:40:41.643506+00:00"
+   },
+   {
+    "id": "ba079f6d-dfe8-484d-a3fa-6b956eeab5a2",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T21:47:48.355+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T21:47:48.206897+00:00"
+   },
+   {
+    "id": "290a0f4a-022a-4fdc-8893-8f871eda8b43",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T21:49:11.38+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T21:49:11.263743+00:00"
+   },
+   {
+    "id": "84a2b573-a626-476b-8f15-05e044569c88",
+    "user_id": "1189ee7c-632a-4a06-8020-552856a9ec37",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T21:49:44.767+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T21:49:44.441734+00:00"
+   },
+   {
+    "id": "60133570-1bba-4eaa-ab12-4703df1501a3",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T22:21:49.651+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T22:21:49.296504+00:00"
+   },
+   {
+    "id": "1b1ee3d3-e5ef-446c-80ca-606970a0e3a6",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "r66t07",
+    "device_info": {
+     "deviceId": "r66t07",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "login_at": "2026-10-31T22:27:12.999+00:00",
+    "logout_at": null,
+    "created_at": "2026-10-31T22:27:12.923253+00:00"
+   },
+   {
+    "id": "42834b5d-3008-48b1-9b17-40fc275f25af",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "device_id": "l76f2x",
+    "device_info": {
+     "deviceId": "l76f2x",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Cursor/3.28.7 Chrome/148.0.7778.280 Electron/42.11.16 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Cursor/3.28.7 Chrome/148.0.7778.280 Electron/42.11.16 Safari/537.36",
+    "login_at": "2026-11-06T17:32:43.709+00:00",
+    "logout_at": null,
+    "created_at": "2026-11-06T17:32:44.201437+00:00"
+   },
+   {
+    "id": "c374cafd-7191-4e5a-b04e-aa7d4f2e8f0d",
+    "user_id": "1189ee7c-632a-4a06-8020-552856a9ec37",
+    "device_id": "l76f2x",
+    "device_info": {
+     "deviceId": "l76f2x",
+     "language": "en-US",
+     "platform": "Win32",
+     "timezone": "Africa/Tunis",
+     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Cursor/3.28.7 Chrome/148.0.7778.280 Electron/42.11.16 Safari/537.36",
+     "screenResolution": "1536x864"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Cursor/3.28.7 Chrome/148.0.7778.280 Electron/42.11.16 Safari/537.36",
+    "login_at": "2026-11-06T17:35:02.597+00:00",
+    "logout_at": null,
+    "created_at": "2026-11-06T17:35:02.901531+00:00"
+   }
+  ],
+  "training_sessions": [
+   {
+    "id": "9a94b823-7922-41f5-8396-d4e51d2ac580",
+    "team_id": null,
+    "title": "Daily Training",
+    "description": "daily",
+    "scheduled_at": null,
+    "duration_minutes": null,
+    "location": "Field",
+    "created_by": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "created_at": "2026-10-31T15:11:40.657584+00:00",
+    "updated_at": "2026-10-31T15:11:40.657584+00:00",
+    "coach_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "max_participants": null,
+    "status": "scheduled",
+    "club_id": "00000000-0000-0000-0000-000000000001",
+    "session_date": "2026-11-03",
+    "start_time": "16:11:00",
+    "end_time": "18:11:00",
+    "qr_code": null
+   }
+  ],
+  "profiles": [
+   {
+    "id": "2f2f8eb2-09a0-49e6-b2d2-bae8737bb139",
+    "email": "dridi@dridi.com",
+    "full_name": "dridi",
+    "phone": null,
+    "date_of_birth": null,
+    "avatar_url": null,
+    "club_id": null,
+    "created_at": "2026-10-31T14:04:04.199572+00:00",
+    "updated_at": "2026-10-31T14:04:04.199572+00:00",
+    "membership_status": null,
+    "coach_id": null,
+    "role": null
+   },
+   {
+    "id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "email": "demo.coach@clubdee.com",
+    "full_name": "Demo Coach",
+    "phone": null,
+    "date_of_birth": null,
+    "avatar_url": null,
+    "club_id": null,
+    "created_at": "2026-10-31T14:46:16.824591+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00",
+    "membership_status": "active",
+    "coach_id": null,
+    "role": "coach"
+   },
+   {
+    "id": "e36ec720-f127-4690-bb13-b7c0af6e841f",
+    "email": "coach@clubdee.com",
+    "full_name": "coach",
+    "phone": null,
+    "date_of_birth": null,
+    "avatar_url": null,
+    "club_id": null,
+    "created_at": "2026-10-31T15:06:50.005124+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00",
+    "membership_status": null,
+    "coach_id": null,
+    "role": null
+   },
+   {
+    "id": "fccda409-01a5-4a29-bd10-3918b93086ab",
+    "email": "dridi.mohamed.1@esprit.tn",
+    "full_name": "dridi.mohamed.1",
+    "phone": null,
+    "date_of_birth": null,
+    "avatar_url": null,
+    "club_id": "00000000-0000-0000-0000-000000000001",
+    "created_at": "2026-10-31T14:04:04.199572+00:00",
+    "updated_at": "2026-10-31T15:08:59.143109+00:00",
+    "membership_status": "active",
+    "coach_id": null,
+    "role": null
+   },
+   {
+    "id": "1189ee7c-632a-4a06-8020-552856a9ec37",
+    "email": "demo.admin@clubdee.com",
+    "full_name": "Demo Admin",
+    "phone": null,
+    "date_of_birth": null,
+    "avatar_url": null,
+    "club_id": null,
+    "created_at": "2026-10-31T21:48:16.666586+00:00",
+    "updated_at": "2026-10-31T21:48:16.666586+00:00",
+    "membership_status": "active",
+    "coach_id": null,
+    "role": "admin"
+   },
+   {
+    "id": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+    "email": "athlete@gmail.com",
+    "full_name": "athlete",
+    "phone": null,
+    "date_of_birth": null,
+    "avatar_url": null,
+    "club_id": "00000000-0000-0000-0000-000000000003",
+    "created_at": "2026-10-31T22:09:51.375+00:00",
+    "updated_at": "2026-10-31T22:27:47.192043+00:00",
+    "membership_status": "active",
+    "coach_id": null,
+    "role": null
+   }
+  ],
+  "coaches": [
+   {
+    "id": "56d4cfd7-838b-4d3a-88be-7c4257cea998",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "club_id": "00000000-0000-0000-0000-000000000001",
+    "first_name": "Demo",
+    "last_name": "Coach",
+    "phone_number": "0000000000",
+    "email": "demo.coach@clubdee.com",
+    "certification_url": null,
+    "created_at": "2026-10-31T14:46:16.824591+00:00",
+    "updated_at": "2026-10-31T22:22:53.806175+00:00"
+   },
+   {
+    "id": "539a04aa-f1a1-49ce-83b6-00ac4928fe89",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "club_id": "00000000-0000-0000-0000-000000000002",
+    "first_name": "Demo",
+    "last_name": "Coach",
+    "phone_number": "0000000000",
+    "email": "demo.coach@clubdee.com",
+    "certification_url": null,
+    "created_at": "2026-10-31T14:46:16.824591+00:00",
+    "updated_at": "2026-10-31T22:22:53.806175+00:00"
+   },
+   {
+    "id": "7309caab-6131-485d-b84f-30e8c83bfa14",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "club_id": "00000000-0000-0000-0000-000000000003",
+    "first_name": "Demo",
+    "last_name": "Coach",
+    "phone_number": "0000000000",
+    "email": "demo.coach@clubdee.com",
+    "certification_url": null,
+    "created_at": "2026-10-31T14:46:16.824591+00:00",
+    "updated_at": "2026-10-31T22:22:53.806175+00:00"
+   },
+   {
+    "id": "b9c02913-ef51-4900-a9fb-27947288db48",
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "club_id": "98c9cdff-071f-4daf-a6bb-a6377b55a877",
+    "first_name": "Demo",
+    "last_name": "Coach",
+    "phone_number": "0000000000",
+    "email": "demo.coach@clubdee.com",
+    "certification_url": null,
+    "created_at": "2026-10-31T22:22:53.806175+00:00",
+    "updated_at": "2026-10-31T22:22:53.806175+00:00"
+   }
+  ],
+  "athletes": [
+   {
+    "id": "229edc81-001b-494e-a2eb-445d6336d3e0",
+    "user_id": "fccda409-01a5-4a29-bd10-3918b93086ab",
+    "club_id": "00000000-0000-0000-0000-000000000001",
+    "first_name": "Mohamed",
+    "last_name": "Dridi",
+    "nickname": "Dridi",
+    "date_of_birth": "2000-02-18",
+    "phone_number": "+21625256542",
+    "email": "dridi.mohamed.1@esprit.tn",
+    "gender": "male",
+    "health_notes": null,
+    "profile_picture_url": null,
+    "created_at": "2026-10-31T15:08:58.776999+00:00",
+    "updated_at": "2026-10-31T15:08:58.776999+00:00"
+   },
+   {
+    "id": "6e840070-9f1e-4ecb-8d3b-72ba6150c8ed",
+    "user_id": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+    "club_id": "00000000-0000-0000-0000-000000000003",
+    "first_name": "athlete",
+    "last_name": "athlete",
+    "nickname": "athlete",
+    "date_of_birth": "2000-01-25",
+    "phone_number": "+21625152632",
+    "email": "athlete@gmail.com",
+    "gender": "male",
+    "health_notes": null,
+    "profile_picture_url": null,
+    "created_at": "2026-10-31T22:27:46.886102+00:00",
+    "updated_at": "2026-10-31T22:27:46.886102+00:00"
+   }
+  ],
+  "teams": [],
+  "announcements": [],
+  "user_roles": [
+   {
+    "user_id": "2f2f8eb2-09a0-49e6-b2d2-bae8737bb139",
+    "role": "athlete",
+    "created_at": "2026-10-31T14:04:04.199572+00:00",
+    "updated_at": "2026-10-31T14:04:04.199572+00:00"
+   },
+   {
+    "user_id": "fccda409-01a5-4a29-bd10-3918b93086ab",
+    "role": "athlete",
+    "created_at": "2026-10-31T14:04:04.199572+00:00",
+    "updated_at": "2026-10-31T14:04:04.199572+00:00"
+   },
+   {
+    "user_id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+    "role": "coach",
+    "created_at": "2026-10-31T14:46:16.824591+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00"
+   },
+   {
+    "user_id": "e36ec720-f127-4690-bb13-b7c0af6e841f",
+    "role": "athlete",
+    "created_at": "2026-10-31T15:06:50.005124+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00"
+   },
+   {
+    "user_id": "1189ee7c-632a-4a06-8020-552856a9ec37",
+    "role": "admin",
+    "created_at": "2026-10-31T21:48:16.666586+00:00",
+    "updated_at": "2026-10-31T21:48:16.666586+00:00"
+   },
+   {
+    "user_id": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+    "role": "athlete",
+    "created_at": "2026-10-31T22:09:51.527794+00:00",
+    "updated_at": "2026-10-31T22:09:51.527794+00:00"
+   }
+  ],
+  "membership_applications": [
+   {
+    "id": "22f6c01b-c9dc-4f3d-9111-9ea969c85494",
+    "user_id": "fccda409-01a5-4a29-bd10-3918b93086ab",
+    "club_id": "00000000-0000-0000-0000-000000000001",
+    "personal_info": {
+     "gender": "male",
+     "address": "gangster steet",
+     "nickname": "Dridi",
+     "full_name": "Mohamed Dridi",
+     "blood_type": "A",
+     "phone_number": "+21625256542",
+     "date_of_birth": "2000-02-18",
+     "emergency_contact": "+21698524623",
+     "medical_conditions": ""
+    },
+    "documents": [],
+    "status": "approved",
+    "review_info": {
+     "notes": null,
+     "reviewed_at": "2026-10-31T15:08:58.459619+00:00",
+     "reviewed_by": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+     "reviewer_role": "coach"
+    },
+    "activity_log": [
+     {
+      "to": "approved",
+      "from": "pending",
+      "notes": null,
+      "action": "status_changed",
+      "by_role": "coach",
+      "by_user": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+      "timestamp": "2026-10-31T15:01:56.010Z"
+     },
+     {
+      "to": "approved",
+      "from": "pending",
+      "notes": null,
+      "action": "status_changed",
+      "by_role": "coach",
+      "by_user": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+      "timestamp": "2026-10-31T15:08:58.459619+00:00"
+     },
+     {
+      "action": "profile_created",
+      "by_role": "athlete",
+      "by_user": "fccda409-01a5-4a29-bd10-3918b93086ab",
+      "club_id": "00000000-0000-0000-0000-000000000001",
+      "timestamp": "2026-10-31T15:08:59.029573+00:00",
+      "profile_id": "229edc81-001b-494e-a2eb-445d6336d3e0"
+     }
+    ],
+    "profile_id": null,
+    "created_at": "2026-10-31T14:53:48.690415+00:00",
+    "updated_at": "2026-10-31T15:08:59.029573+00:00"
+   },
+   {
+    "id": "10df0b72-91a3-4083-ba75-7130a435ce64",
+    "user_id": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+    "club_id": "00000000-0000-0000-0000-000000000003",
+    "personal_info": {
+     "gender": "male",
+     "address": "Athletes street",
+     "nickname": "athlete",
+     "full_name": "athlete",
+     "blood_type": "B",
+     "phone_number": "+21625152632",
+     "date_of_birth": "2000-01-25",
+     "emergency_contact": "+21620102526",
+     "medical_conditions": ""
+    },
+    "documents": [],
+    "status": "approved",
+    "review_info": {
+     "notes": null,
+     "reviewed_at": "2026-10-31T22:27:46.589044+00:00",
+     "reviewed_by": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+     "reviewer_role": "coach"
+    },
+    "activity_log": [
+     {
+      "action": "submitted",
+      "by_role": "athlete",
+      "by_user": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+      "club_id": "00000000-0000-0000-0000-000000000003",
+      "timestamp": "2026-10-31T22:18:17.380963+00:00"
+     },
+     {
+      "to": "approved",
+      "from": "pending",
+      "notes": null,
+      "action": "status_changed",
+      "by_role": "coach",
+      "by_user": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+      "timestamp": "2026-10-31T22:27:46.589044+00:00"
+     },
+     {
+      "action": "profile_created",
+      "by_role": "athlete",
+      "by_user": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+      "club_id": "00000000-0000-0000-0000-000000000003",
+      "timestamp": "2026-10-31T22:27:47.095511+00:00",
+      "profile_id": "6e840070-9f1e-4ecb-8d3b-72ba6150c8ed"
+     }
+    ],
+    "profile_id": null,
+    "created_at": "2026-10-31T22:18:17.13039+00:00",
+    "updated_at": "2026-10-31T22:27:47.095511+00:00"
+   }
+  ],
+  "tournament_participants": [],
+  "clubs": [
+   {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "name": "Test Sports Club",
+    "description": "Default school demo club",
+    "logo_url": null,
+    "created_at": "2026-10-31T13:36:36.985816+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00",
+    "sport_type": "Football"
+   },
+   {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "name": "Basketball Academy",
+    "description": "Demo basketball club",
+    "logo_url": null,
+    "created_at": "2026-10-31T14:04:04.199572+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00",
+    "sport_type": "Basketball"
+   },
+   {
+    "id": "00000000-0000-0000-0000-000000000003",
+    "name": "Swim Stars",
+    "description": "Demo swimming club",
+    "logo_url": null,
+    "created_at": "2026-10-31T14:04:04.199572+00:00",
+    "updated_at": "2026-10-31T15:06:50.005124+00:00",
+    "sport_type": "Swimming"
+   },
+   {
+    "id": "98c9cdff-071f-4daf-a6bb-a6377b55a877",
+    "name": "Eagles Handball team",
+    "description": null,
+    "logo_url": null,
+    "created_at": "2026-10-31T21:52:45.753359+00:00",
+    "updated_at": "2026-10-31T21:52:45.753359+00:00",
+    "sport_type": "Handball"
+   }
+  ],
+  "attendance": [],
+  "team_members": [],
+  "audit_logs": []
+ },
+ "users": [
+  {
+   "id": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9",
+   "email": "athlete@gmail.com",
+   "email_confirmed_at": "2026-10-31T22:09:50.877204Z",
+   "user_metadata": {
+    "email": "athlete@gmail.com",
+    "email_verified": true,
+    "phone_verified": false,
+    "sub": "6fb7e068-7645-4bdc-bb75-8d0e38ca06d9"
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-31T22:09:50.859457Z",
+   "updated_at": "2026-10-31T22:09:50.904002Z",
+   "last_sign_in_at": "2026-10-31T22:09:50.88434Z"
+  },
+  {
+   "id": "1189ee7c-632a-4a06-8020-552856a9ec37",
+   "email": "demo.admin@clubdee.com",
+   "email_confirmed_at": "2026-10-31T21:46:55.589886Z",
+   "user_metadata": {
+    "email_verified": true
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-31T21:46:55.576707Z",
+   "updated_at": "2026-11-06T17:35:02.475725Z",
+   "last_sign_in_at": "2026-11-06T17:35:02.438247Z"
+  },
+  {
+   "id": "14999a1a-0e35-4eb4-8ac3-fc3bceb59b61",
+   "email": "admin@admin.com",
+   "email_confirmed_at": "2026-10-31T21:24:23.747195Z",
+   "user_metadata": {
+    "email_verified": true
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-31T21:24:23.718965Z",
+   "updated_at": "2026-10-31T21:24:23.748286Z",
+   "last_sign_in_at": null
+  },
+  {
+   "id": "3f3fa178-f141-4ab8-b8fe-d43244a6d1b6",
+   "email": "demo.coach@clubdee.com",
+   "email_confirmed_at": "2026-10-31T14:45:59.115751Z",
+   "user_metadata": {
+    "email_verified": true
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-31T14:45:59.099828Z",
+   "updated_at": "2026-11-06T17:32:43.547014Z",
+   "last_sign_in_at": "2026-11-06T17:32:43.477902Z"
+  },
+  {
+   "id": "e36ec720-f127-4690-bb13-b7c0af6e841f",
+   "email": "coach@clubdee.com",
+   "email_confirmed_at": "2026-10-31T14:43:25.879189Z",
+   "user_metadata": {
+    "email_verified": true
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-31T14:43:25.861876Z",
+   "updated_at": "2026-10-31T14:43:25.880822Z",
+   "last_sign_in_at": null
+  },
+  {
+   "id": "fccda409-01a5-4a29-bd10-3918b93086ab",
+   "email": "dridi.mohamed.1@esprit.tn",
+   "email_confirmed_at": "2026-10-31T13:42:22.260589Z",
+   "user_metadata": {
+    "email": "dridi.mohamed.1@esprit.tn",
+    "email_verified": true,
+    "phone_verified": false,
+    "sub": "fccda409-01a5-4a29-bd10-3918b93086ab"
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-31T13:41:40.67976Z",
+   "updated_at": "2026-10-31T22:21:10.835497Z",
+   "last_sign_in_at": "2026-10-31T15:12:13.980219Z"
+  },
+  {
+   "id": "2f2f8eb2-09a0-49e6-b2d2-bae8737bb139",
+   "email": "dridi@dridi.com",
+   "email_confirmed_at": null,
+   "user_metadata": {
+    "email": "dridi@dridi.com",
+    "email_verified": false,
+    "phone_verified": false,
+    "sub": "2f2f8eb2-09a0-49e6-b2d2-bae8737bb139"
+   },
+   "app_metadata": {
+    "provider": "email",
+    "providers": [
+     "email"
+    ]
+   },
+   "created_at": "2026-10-30T17:51:08.873025Z",
+   "updated_at": "2026-10-30T17:51:09.570829Z",
+   "last_sign_in_at": null
+  }
+ ],
+ "storage": []
+}

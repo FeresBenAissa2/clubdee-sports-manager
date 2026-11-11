@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/db/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { userId } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Missing user ID' },
+        { status: 400 }
+      );
+    }
+
+    const db = await createClient();
+
+    // Verify user is authenticated
+    const {
+      data: { user },
+    } = await db.auth.getUser();
+
+    if (!user || user.id !== userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Remove push subscription from database
+    const { error } = await db
+      .from('push_subscriptions')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Failed to remove push subscription:', error);
+      return NextResponse.json(
+        { error: 'Failed to remove subscription' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Unsubscribe error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
