@@ -70,6 +70,8 @@ interface MealPlanEditorProps {
   /** True when this exact plan exists (offers reset / delete). */
   exists: boolean;
   backHref: string;
+  /** For an athlete whose level comes from body data or a coach's fixed level: shown, not edited. */
+  levelLock?: { level: number; reason: string; href: string } | null;
 }
 
 function MealRows({
@@ -173,9 +175,10 @@ export function MealPlanEditor({
   initial,
   exists,
   backHref,
+  levelLock = null,
 }: MealPlanEditorProps) {
   const router = useRouter();
-  const [level, setLevel] = useState<number>(initial?.level_kcal ?? 2500);
+  const [level, setLevel] = useState<number>(levelLock?.level ?? initial?.level_kcal ?? 2500);
   const [style, setStyle] = useState<PlanStyle>(initial?.style ?? 'balanced');
   const [custom, setCustom] = useState<Partial<Record<MealKind, PortionItem[]>>>(
     initial?.meals ?? {}
@@ -304,28 +307,50 @@ export function MealPlanEditor({
           Meals are filled automatically to match it. Athletes under 18 never see this number, only
           their portions.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2" role="radiogroup" aria-label="Calories per day">
-          {PLAN_LEVELS.map((l) => (
-            <button
-              key={l}
-              type="button"
-              role="radio"
-              aria-checked={l === level}
-              onClick={() => {
-                setLevel(l);
-                setMessage(null);
-              }}
-              className={cn(
-                'rounded-xl border px-4 py-2 text-sm font-semibold tabular-nums transition-colors',
-                l === level
-                  ? 'border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-                  : 'border-border bg-background text-foreground hover:border-blue-300 hover:bg-blue-50'
-              )}
+        {levelLock ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+            <div>
+              <p className="font-display text-2xl font-semibold text-foreground tabular-nums">
+                {levelLock.level.toLocaleString('en-US')}
+                <span className="text-sm text-muted-foreground"> kcal / day</span>
+              </p>
+              <p className="text-sm text-muted-foreground">{levelLock.reason}</p>
+            </div>
+            <a
+              href={levelLock.href}
+              className="text-sm font-semibold text-violet-700 hover:underline"
             >
-              {l.toLocaleString('en-US')} kcal
-            </button>
-          ))}
-        </div>
+              Change it in Body &amp; energy
+            </a>
+          </div>
+        ) : (
+          <div
+            className="mt-4 flex flex-wrap gap-2"
+            role="radiogroup"
+            aria-label="Calories per day"
+          >
+            {PLAN_LEVELS.map((l) => (
+              <button
+                key={l}
+                type="button"
+                role="radio"
+                aria-checked={l === level}
+                onClick={() => {
+                  setLevel(l);
+                  setMessage(null);
+                }}
+                className={cn(
+                  'rounded-xl border px-4 py-2 text-sm font-semibold tabular-nums transition-colors',
+                  l === level
+                    ? 'border-blue-600 bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                    : 'border-border bg-background text-foreground hover:border-blue-300 hover:bg-blue-50'
+                )}
+              >
+                {l.toLocaleString('en-US')} kcal
+              </button>
+            ))}
+          </div>
+        )}
 
         <h3 className="mt-6 text-sm font-semibold text-foreground">Style</h3>
         <div className="mt-2 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Plan style">

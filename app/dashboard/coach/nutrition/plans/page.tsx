@@ -118,9 +118,10 @@ export default async function MealPlansPage() {
       )}
 
       <p data-reveal className="text-xs text-muted-foreground">
-        Values are approximate, from typical home recipes. Athletes under 18 see their portions in
-        grams and household measures, never calorie numbers. To customize one athlete, open them
-        from Team nutrition.
+        The team level is a default: athletes with a height and weight get their own level,
+        calculated from their body and training, with the team&apos;s meals. Values are approximate,
+        from typical home recipes. Athletes under 18 see their portions in grams and household
+        measures, never calorie numbers. To customize one athlete, open them from Team nutrition.
       </p>
     </Reveal>
   );

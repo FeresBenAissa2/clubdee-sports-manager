@@ -4,6 +4,7 @@ import { Reveal } from '@/components/motion/Reveal';
 import { FuelToday } from '@/components/nutrition/FuelToday';
 import { HydrationCard } from '@/components/nutrition/HydrationCard';
 import { LogMealDialog } from '@/components/nutrition/LogMealDialog';
+import { MyBodyCard } from '@/components/nutrition/MyBodyCard';
 import { NutritionHistory } from '@/components/nutrition/NutritionHistory';
 import { TomorrowCard } from '@/components/nutrition/TomorrowCard';
 import { WeeklyCheckIn } from '@/components/nutrition/WeeklyCheckIn';
@@ -40,9 +41,19 @@ export default async function AthleteNutritionPage({
 
   // The coach's meal plan turns each meal step into portions in grams.
   const portions = data.plan ? Object.fromEntries(portionsForSteps(steps, data.plan.config)) : null;
+  const LEVEL_FROM = {
+    fixed: 'level set by your coach',
+    recommended: 'level calculated from your body and training',
+    plan: null,
+  } as const;
   const planSource = data.plan
     ? [
-        data.plan.source === 'athlete' ? 'made for you by your coach' : 'your team plan',
+        data.plan.source === 'athlete'
+          ? 'made for you by your coach'
+          : data.plan.source === 'club'
+            ? 'your team plan'
+            : 'automatic meals',
+        LEVEL_FROM[data.plan.levelSource],
         // The level is a calorie figure: only for athletes aged 18+.
         data.showNumbers &&
           `${data.plan.config.level_kcal} kcal, ${PLAN_STYLES.find((s) => s.id === data.plan!.config.style)?.label.toLowerCase()}`,
@@ -85,6 +96,16 @@ export default async function AthleteNutritionPage({
         below={<TomorrowCard sessions={data.sessionsTomorrow} />}
         aside={
           <>
+            {/* Adults manage their own body data; a coach records it for under-18s. */}
+            {data.showNumbers && (
+              <MyBodyCard
+                age={data.energy.age}
+                sex={data.energy.sex}
+                latest={data.energy.metrics[0] ?? null}
+                recommendation={data.energy.recommendation}
+                fixedLevel={data.energy.fixedLevel}
+              />
+            )}
             <HydrationCard
               glasses={data.hydration.glasses}
               goal={data.hydration.goal}

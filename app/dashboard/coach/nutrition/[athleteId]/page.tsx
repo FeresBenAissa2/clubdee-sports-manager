@@ -16,9 +16,13 @@ import { FlagBadge } from '@/components/nutrition/FlagBadge';
 import { NutritionHistory } from '@/components/nutrition/NutritionHistory';
 import { WeeklyTrend } from '@/components/nutrition/WeeklyTrend';
 import { MealPlanCard } from '@/components/nutrition/MealPlanCard';
+import { BodyEnergyCard } from '@/components/nutrition/BodyEnergyCard';
 import {
+  getAthleteEnergy,
   getAthleteForStaff,
+  getAthletePlan,
   getCheckInHistory,
+  getClubPlan,
   getEffectivePlan,
   getNutritionHistory,
   getStaffClubIds,
@@ -68,12 +72,17 @@ export default async function CoachAthleteNutritionPage({
   );
   const nav = monthNavigation(basePath, query.month, today, { period: period.value });
 
-  const [history, monthHistory, checkIns, mealPlan] = await Promise.all([
+  const [history, monthHistory, checkIns, mealPlan, ownPlan, teamPlan] = await Promise.all([
     getNutritionHistory(athlete, days),
     getNutritionHistory(athlete, monthDays(nav.month, today)),
     getCheckInHistory(athlete.id, weeks),
     getEffectivePlan(athlete),
+    getAthletePlan(athlete.id),
+    getClubPlan(athlete.club_id),
   ]);
+  const energy = mealPlan?.energy ?? (await getAthleteEnergy(athlete));
+  // The plan's own level, used while there is no body data.
+  const planLevel = ownPlan?.level_kcal ?? teamPlan?.level_kcal ?? null;
   // The period history ends today, so its last day carries today's fuel plan.
   const todaySteps = history.at(-1)?.date === today ? history.at(-1)!.steps : [];
 
@@ -233,6 +242,14 @@ export default async function CoachAthleteNutritionPage({
           />
         </div>
         <div className="space-y-6 lg:col-span-2">
+          <BodyEnergyCard
+            athleteId={athlete.id}
+            firstName={first}
+            isMinor={!isAdult(athlete.date_of_birth, today)}
+            energy={energy}
+            planLevel={planLevel}
+            today={today}
+          />
           <MealPlanCard
             athleteId={athlete.id}
             firstName={first}

@@ -28,7 +28,8 @@ export interface MealPlanConfig {
   meals: Partial<Record<MealKind, PortionItem[]>>;
 }
 
-export const PLAN_LEVELS = [2000, 2250, 2500, 2750, 3000, 3250, 3500] as const;
+/** Daily energy levels a plan can use: 1,500 to 4,500 kcal in steps of 250. */
+export const PLAN_LEVELS: readonly number[] = Array.from({ length: 13 }, (_, i) => 1500 + i * 250);
 
 export const PLAN_STYLES: { id: PlanStyle; label: string; description: string }[] = [
   { id: 'balanced', label: 'Balanced', description: 'Even mix of energy and protein.' },

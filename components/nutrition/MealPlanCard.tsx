@@ -46,10 +46,12 @@ export function MealPlanCard({
           </h2>
           <p className="text-sm text-muted-foreground">
             {!plan
-              ? 'No plan: food ideas only, no portions.'
+              ? 'No plan and no body data: food ideas only, no portions.'
               : plan.source === 'athlete'
                 ? `Made for ${firstName}.`
-                : 'Team plan.'}
+                : plan.source === 'club'
+                  ? 'Team plan meals.'
+                  : 'No meal plan yet: automatic balanced meals.'}
           </p>
         </div>
         <span
@@ -62,7 +64,13 @@ export function MealPlanCard({
                 : 'bg-secondary text-muted-foreground'
           )}
         >
-          {plan?.source === 'athlete' ? 'Custom' : plan ? 'Team' : 'None'}
+          {plan?.source === 'athlete'
+            ? 'Custom'
+            : plan?.source === 'club'
+              ? 'Team'
+              : plan
+                ? 'Auto'
+                : 'None'}
         </span>
       </div>
 
@@ -71,6 +79,13 @@ export function MealPlanCard({
           <p className="font-display text-2xl font-semibold text-foreground tabular-nums">
             {plan.config.level_kcal.toLocaleString('en-US')}
             <span className="text-sm text-muted-foreground"> kcal / day · {style?.label}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {plan.levelSource === 'fixed'
+              ? 'Level fixed by a coach.'
+              : plan.levelSource === 'recommended'
+                ? 'Level calculated from body data and training.'
+                : 'Level from the meal plan (no body data yet).'}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Today: {r(today.kcal)} kcal · P {r(today.protein)} g · C {r(today.carbs)} g · F{' '}
