@@ -1,8 +1,9 @@
 /**
  * Demo data for the nutrition section, for the demo athlete's club (club time):
  * - training sessions today and tomorrow, so the fuel plan has something to plan around;
- * - with --history, about four months of sessions, ticked plan steps, meals, water and
- *   weekly check-ins, so the athlete's "Past days" and the coach's athlete page have content.
+ * - with --history, about four months of sessions, ticked plan steps (with gram portions),
+ *   meals, water, weekly check-ins and a team meal plan (2750 kcal, endurance), so the
+ *   athlete's "Past days" and the coach's pages have content.
  *
  *   npm run db:seed:nutrition-demo                          today 17:30–19:00, tomorrow 06:30
  *   npm run db:seed:nutrition-demo -- --at 16:00            today's session starts at 16:00
@@ -20,7 +21,11 @@ import { getMongoClient, mongoConfig } from '../../lib/db/mongo';
 import { addDays, dayKey, weekStart } from '../../lib/nutrition/dates';
 import { NUTRITION_COLLECTIONS as C } from '../../lib/nutrition/indexes';
 import { buildFuelPlan, toClock, toMinutes, type PlanSession } from '../../lib/nutrition/plan';
+import { portionsForSteps, type MealPlanConfig } from '../../lib/nutrition/portions';
 import { hydrationGoal } from '../../lib/nutrition/tips';
+
+/** The team plan --history creates (a swimming club, so endurance). */
+const DEMO_PLAN: MealPlanConfig = { level_kcal: 2750, style: 'endurance', meals: {} };
 
 config({ path: '.env.local', quiet: true });
 
@@ -123,11 +128,13 @@ async function seedHistory(db: Db, athlete: Athlete, makeSession: MakeSession) {
     }
 
     const steps = buildFuelPlan(daySessions);
+    const portions = portionsForSteps(steps, DEMO_PLAN);
     const ticked = steps.slice(0, Math.round(steps.length * share));
     for (const step of ticked) {
       let mealId: string | null = null;
       if (step.mealType) {
         mealId = randomUUID();
+        const planned = portions.get(step.id) ?? [];
         await db.collection(C.meals).insertOne({
           id: mealId,
           athlete_id: athlete.id,
@@ -135,7 +142,8 @@ async function seedHistory(db: Db, athlete: Athlete, makeSession: MakeSession) {
           club_id: athlete.club_id,
           date,
           meal_type: step.mealType,
-          items: step.foods.slice(0, 2),
+          items: planned.map((p) => p.food_id),
+          portions: planned,
           note: '',
           plan_step: step.id,
           seed: SEED,
@@ -277,8 +285,23 @@ async function main() {
   if (process.argv.includes('--history')) {
     if (!athlete) throw new Error('Demo athlete not found: run npm run db:seed first.');
     await seedHistory(db, athlete, makeSession);
+    // A team meal plan for the club, unless the coach already made one.
+    await db.collection(C.mealPlans).updateOne(
+      { scope: 'club', club_id: clubId, athlete_id: null },
+      {
+        $setOnInsert: {
+          id: randomUUID(),
+          ...DEMO_PLAN,
+          user_id: null,
+          updated_by: coachId ?? 'seed',
+          updated_at: new Date(),
+          seed: SEED,
+        },
+      },
+      { upsert: true }
+    );
     console.log(
-      `Added ${HISTORY_DAYS} past days and ${CHECKINS.length} weekly check-ins for the demo athlete.`
+      `Added ${HISTORY_DAYS} past days, ${CHECKINS.length} weekly check-ins and a ${DEMO_PLAN.level_kcal} kcal team meal plan.`
     );
   }
 }

@@ -4,8 +4,10 @@ import { useEffect, useMemo, useOptimistic, useState, useTransition } from 'reac
 import { checkPlanStep, uncheckPlanStep } from '@/lib/nutrition/actions';
 import { clockNow } from '@/lib/nutrition/dates';
 import { focusStep, stepStatus, type FuelStep, type PlanSession } from '@/lib/nutrition/plan';
+import type { PortionItem } from '@/lib/nutrition/portions';
 import { FuelHero } from './FuelHero';
 import { FuelTimeline } from './FuelTimeline';
+import { TodayPlanCard } from './TodayPlanCard';
 
 interface FuelTodayProps {
   steps: FuelStep[];
@@ -22,6 +24,12 @@ interface FuelTodayProps {
   below?: React.ReactNode;
   /** Right column. */
   aside?: React.ReactNode;
+  /** Portions per step id from the coach's meal plan; null without a plan. */
+  portions: Record<string, PortionItem[]> | null;
+  /** Where the plan comes from, for the totals card. */
+  planSource: string | null;
+  /** Calorie numbers only for athletes aged 18+. */
+  showNumbers: boolean;
 }
 
 type Change = { id: string; done: boolean };
@@ -36,6 +44,9 @@ export function FuelToday({
   planAction,
   below,
   aside,
+  portions,
+  planSource,
+  showNumbers,
 }: FuelTodayProps) {
   const [now, setNow] = useState(initialNow);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -86,6 +97,8 @@ export function FuelToday({
         total={steps.length}
         busy={focus !== null && busyId === focus.id}
         error={error}
+        focusPortions={focus ? (portions?.[focus.id] ?? null) : null}
+        showNumbers={showNumbers}
         onTick={(step) => run(step, true)}
       />
 
@@ -98,12 +111,25 @@ export function FuelToday({
             sessionTitles={sessionTitles}
             restDay={sessions.length === 0}
             action={planAction}
+            portions={portions}
+            showNumbers={showNumbers}
             onTick={(step, items) => run(step, true, items)}
             onUndo={(step) => run(step, false)}
           />
           {below}
         </div>
-        <div className="space-y-6 lg:col-span-2">{aside}</div>
+        <div className="space-y-6 lg:col-span-2">
+          {portions && (
+            <TodayPlanCard
+              steps={steps}
+              portions={portions}
+              doneIds={doneIds}
+              showNumbers={showNumbers}
+              sourceLabel={planSource ?? 'set by your coach'}
+            />
+          )}
+          {aside}
+        </div>
       </div>
     </>
   );

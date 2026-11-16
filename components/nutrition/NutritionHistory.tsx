@@ -55,7 +55,13 @@ function statusOf(day: NutritionDay, step: FuelStep, today: string, now: string)
 }
 
 function foodsText(meal: HistoryMeal) {
-  const names = meal.items.map((id) => FOOD_BY_ID.get(id)?.name ?? id).join(', ');
+  // Meals from a coach's plan carry grams.
+  const names =
+    meal.portions.length > 0
+      ? meal.portions
+          .map((p) => `${FOOD_BY_ID.get(p.food_id)?.name ?? p.food_id} ${p.grams} g`)
+          .join(', ')
+      : meal.items.map((id) => FOOD_BY_ID.get(id)?.name ?? id).join(', ');
   return [names, meal.note].filter(Boolean).join(' — ');
 }
 

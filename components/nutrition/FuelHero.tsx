@@ -7,8 +7,11 @@ import {
   type PlanSession,
   type StepStatus,
 } from '@/lib/nutrition/plan';
+import type { PortionItem } from '@/lib/nutrition/portions';
 import { FoodChip } from './FoodChip';
 import { STEP_ICON, tickLabel } from './FuelTimeline';
+import { MealDetailsDialog } from './MealDetailsDialog';
+import { PortionList } from './PortionList';
 
 const hhmm = (t: string | null | undefined) => (t ? t.slice(0, 5) : null);
 
@@ -66,6 +69,9 @@ interface FuelHeroProps {
   total: number;
   busy: boolean;
   error: string | null;
+  /** The coach's portions for the step in focus, when a meal plan is set. */
+  focusPortions: PortionItem[] | null;
+  showNumbers: boolean;
   onTick: (step: FuelStep) => void;
 }
 
@@ -79,6 +85,8 @@ export function FuelHero({
   total,
   busy,
   error,
+  focusPortions,
+  showNumbers,
   onTick,
 }: FuelHeroProps) {
   const next = nextSession(sessions, now);
@@ -166,12 +174,16 @@ export function FuelHero({
                   <p className="mt-0.5 text-sm text-white/60">{focus.why}</p>
                 </div>
               </div>
-              {focus.foods.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {focus.foods.map((id) => (
-                    <FoodChip key={id} id={id} dark />
-                  ))}
-                </div>
+              {focusPortions && focusPortions.length > 0 ? (
+                <PortionList items={focusPortions} dark className="mt-3 max-w-md" />
+              ) : (
+                focus.foods.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {focus.foods.map((id) => (
+                      <FoodChip key={id} id={id} dark />
+                    ))}
+                  </div>
+                )
               )}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
@@ -183,13 +195,22 @@ export function FuelHero({
                   <Check className="size-4" strokeWidth={3} />
                   {tickLabel(focus)}
                 </button>
-                <a
-                  href="#fuel-plan"
-                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-                >
-                  <ArrowDown className="size-4" />
-                  Full plan
-                </a>
+                {focusPortions && focusPortions.length > 0 ? (
+                  <MealDetailsDialog
+                    step={focus}
+                    items={focusPortions}
+                    showNumbers={showNumbers}
+                    dark
+                  />
+                ) : (
+                  <a
+                    href="#fuel-plan"
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                  >
+                    <ArrowDown className="size-4" />
+                    Full plan
+                  </a>
+                )}
               </div>
             </>
           ) : (

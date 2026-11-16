@@ -73,6 +73,15 @@ export default async function CoachNutritionPage() {
         eyebrow="Nutrition"
         title="Team nutrition"
         description={`Fuel plan, hydration, meals and weekly check-ins for your athletes. Week of ${formatDay(weekStart)}. Open an athlete to see their days in detail.`}
+        actions={
+          <Link
+            href="/dashboard/coach/nutrition/plans"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700"
+          >
+            <ClipboardList className="size-4" />
+            Meal plans
+          </Link>
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

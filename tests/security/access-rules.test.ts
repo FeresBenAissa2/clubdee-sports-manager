@@ -15,6 +15,7 @@ describe('collections that are never exposed to the query client', () => {
     'nutrition_meals',
     'nutrition_checkins',
     'nutrition_plan_checks',
+    'nutrition_meal_plans',
   ];
 
   it('cannot be read or written by any signed-in user, even an admin', () => {

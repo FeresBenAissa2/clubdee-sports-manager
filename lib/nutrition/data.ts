@@ -12,6 +12,7 @@ import { BASE_GLASS_GOAL, type CheckInScores, type MealType } from './catalog';
 import { addDays, dayKey, lastDays, weekStart } from './dates';
 import { NUTRITION_COLLECTIONS as COLLECTIONS } from './indexes';
 import { buildFuelPlan, planSummary, type FuelStep, type PlanSession } from './plan';
+import { isAdult, type MealPlanConfig, type PortionItem } from './portions';
 import { hydrationGoal, hydrationSummary, nutritionFlags, type TeamFlag } from './tips';
 
 export {
@@ -44,7 +45,21 @@ export interface MealDoc {
   note: string;
   /** Set when the meal was logged by ticking a step of the fuel plan. */
   plan_step?: string;
+  /** Planned portions in grams, when the step came from a coach's meal plan. */
+  portions?: PortionItem[];
   created_at: Date;
+}
+
+/** A coach's meal plan for a club (team default) or one athlete (override). */
+export interface MealPlanDoc extends MealPlanConfig {
+  id: string;
+  scope: 'club' | 'athlete';
+  club_id: string;
+  athlete_id: string | null;
+  /** The athlete's account, so account deletion removes their override. */
+  user_id: string | null;
+  updated_by: string;
+  updated_at: Date;
 }
 
 /** One ticked step of a day's fuel plan. */
@@ -77,15 +92,25 @@ export interface AthleteRef {
   club_id: string;
   first_name: string;
   last_name: string;
+  date_of_birth?: string | Date | null;
 }
 
 const NO_ID = { projection: { _id: 0 } } as const;
+const ATHLETE_FIELDS = {
+  _id: 0,
+  id: 1,
+  user_id: 1,
+  club_id: 1,
+  first_name: 1,
+  last_name: 1,
+  date_of_birth: 1,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Who is asking
 // ---------------------------------------------------------------------------
 
-async function currentUserId(): Promise<string | null> {
+export async function currentUserId(): Promise<string | null> {
   const db = await createClient();
   const {
     data: { user },
@@ -100,10 +125,7 @@ export async function getCurrentAthlete(): Promise<AthleteRef | null> {
   const db = await getDb();
   return db
     .collection<AthleteRef>('athletes')
-    .findOne(
-      { user_id: userId },
-      { projection: { _id: 0, id: 1, user_id: 1, club_id: 1, first_name: 1, last_name: 1 } }
-    );
+    .findOne({ user_id: userId }, { projection: ATHLETE_FIELDS });
 }
 
 /** Clubs the signed-in coach belongs to (admins see every club). Null if neither. */
@@ -189,6 +211,8 @@ export interface HistoryMeal {
   items: string[];
   note: string;
   plan_step: string | null;
+  /** Grams eaten, when the meal came from a coach's meal plan. */
+  portions: PortionItem[];
 }
 
 /** Everything recorded for one athlete on one day, with the plan that day's sessions gave. */
@@ -242,6 +266,7 @@ export async function getNutritionHistory(
           items: m.items,
           note: m.note,
           plan_step: m.plan_step ?? null,
+          portions: m.portions ?? [],
         })),
       glasses: water?.glasses ?? 0,
       // Today's goal follows today's schedule (as on the athlete page); past days keep the goal they had.
@@ -266,10 +291,7 @@ export async function getAthleteForStaff(
   const db = await getDb();
   const athlete = await db
     .collection<AthleteRef>('athletes')
-    .findOne(
-      { id: athleteId, club_id: { $in: clubIds } },
-      { projection: { _id: 0, id: 1, user_id: 1, club_id: 1, first_name: 1, last_name: 1 } }
-    );
+    .findOne({ id: athleteId, club_id: { $in: clubIds } }, { projection: ATHLETE_FIELDS });
   if (!athlete) return null;
   const club = await db
     .collection('clubs')
@@ -322,6 +344,10 @@ export interface AthleteNutrition {
   week: DaySummary[];
   checkIn: (CheckInScores & { note: string }) | null;
   weekStart: string;
+  /** The coach's meal plan for this athlete (own or team), or null when there is none. */
+  plan: EffectivePlan | null;
+  /** Calorie and macro numbers are only shown to athletes aged 18 or more. */
+  showNumbers: boolean;
 }
 
 export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteNutrition> {
@@ -330,7 +356,7 @@ export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteN
   const days = lastDays(today, 7);
   const monday = weekStart(today);
 
-  const [sessionsToday, sessionsTomorrow, planChecks, hydrationDocs, mealDocs, checkIn] =
+  const [sessionsToday, sessionsTomorrow, planChecks, hydrationDocs, mealDocs, checkIn, plan] =
     await Promise.all([
       getSessionsOn(athlete.club_id, today),
       getSessionsOn(athlete.club_id, addDays(today, 1)),
@@ -352,6 +378,7 @@ export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteN
       db
         .collection<CheckInDoc>(COLLECTIONS.checkins)
         .findOne({ athlete_id: athlete.id, week: monday }, NO_ID),
+      getEffectivePlan(athlete),
     ]);
 
   const goalToday = hydrationGoal(sessionsToday.length);
@@ -390,7 +417,107 @@ export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteN
         }
       : null,
     weekStart: monday,
+    plan,
+    showNumbers: isAdult(athlete.date_of_birth, today),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Meal plans (set by coaches)
+// ---------------------------------------------------------------------------
+
+export interface EffectivePlan {
+  config: MealPlanConfig;
+  /** "athlete": set for this athlete; "club": the team default. */
+  source: 'athlete' | 'club';
+  updated_at: Date;
+}
+
+const toConfig = (doc: MealPlanDoc): MealPlanConfig => ({
+  level_kcal: doc.level_kcal,
+  style: doc.style,
+  meals: doc.meals ?? {},
+});
+
+/** The athlete's own plan, else their club's, else null. */
+export async function getEffectivePlan(athlete: AthleteRef): Promise<EffectivePlan | null> {
+  const db = await getDb();
+  const docs = await db
+    .collection<MealPlanDoc>(COLLECTIONS.mealPlans)
+    .find(
+      {
+        club_id: athlete.club_id,
+        $or: [
+          { scope: 'athlete', athlete_id: athlete.id },
+          { scope: 'club', athlete_id: null },
+        ],
+      },
+      NO_ID
+    )
+    .toArray();
+  const doc = docs.find((d) => d.scope === 'athlete') ?? docs.find((d) => d.scope === 'club');
+  return doc ? { config: toConfig(doc), source: doc.scope, updated_at: doc.updated_at } : null;
+}
+
+export async function getClubPlan(clubId: string): Promise<MealPlanDoc | null> {
+  const db = await getDb();
+  return db
+    .collection<MealPlanDoc>(COLLECTIONS.mealPlans)
+    .findOne({ scope: 'club', club_id: clubId, athlete_id: null }, NO_ID);
+}
+
+export async function getAthletePlan(athleteId: string): Promise<MealPlanDoc | null> {
+  const db = await getDb();
+  return db
+    .collection<MealPlanDoc>(COLLECTIONS.mealPlans)
+    .findOne({ scope: 'athlete', athlete_id: athleteId }, NO_ID);
+}
+
+export interface ClubPlanSummary {
+  clubId: string;
+  clubName: string;
+  athletes: number;
+  /** Athletes of the club with their own plan. */
+  custom: { id: string; name: string }[];
+  plan: MealPlanDoc | null;
+}
+
+/** One row per club for the coach's meal plan overview. */
+export async function getClubPlanSummaries(clubIds: string[]): Promise<ClubPlanSummary[]> {
+  const db = await getDb();
+  const [clubs, athletes, plans] = await Promise.all([
+    db
+      .collection('clubs')
+      .find({ id: { $in: clubIds } }, { projection: { _id: 0, id: 1, name: 1 } })
+      .sort({ name: 1 })
+      .toArray(),
+    db
+      .collection<AthleteRef>('athletes')
+      .find(
+        { club_id: { $in: clubIds } },
+        { projection: { _id: 0, id: 1, club_id: 1, first_name: 1, last_name: 1 } }
+      )
+      .toArray(),
+    db
+      .collection<MealPlanDoc>(COLLECTIONS.mealPlans)
+      .find({ club_id: { $in: clubIds } }, NO_ID)
+      .toArray(),
+  ]);
+  return clubs.map((club) => {
+    const members = athletes.filter((a) => a.club_id === club.id);
+    const customIds = new Set(
+      plans.filter((p) => p.scope === 'athlete' && p.club_id === club.id).map((p) => p.athlete_id)
+    );
+    return {
+      clubId: club.id as string,
+      clubName: (club.name as string) ?? 'Club',
+      athletes: members.length,
+      custom: members
+        .filter((a) => customIds.has(a.id))
+        .map((a) => ({ id: a.id, name: `${a.first_name ?? ''} ${a.last_name ?? ''}`.trim() })),
+      plan: plans.find((p) => p.scope === 'club' && p.club_id === club.id) ?? null,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

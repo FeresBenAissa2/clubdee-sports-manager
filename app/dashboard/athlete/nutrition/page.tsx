@@ -11,6 +11,7 @@ import { getAthleteNutrition, getCurrentAthlete, getNutritionHistory } from '@/l
 import { addDays, APP_TIME_ZONE, clockNow, monthDays } from '@/lib/nutrition/dates';
 import { HISTORY_MONTHS, monthNavigation } from '@/lib/nutrition/history-nav';
 import { buildFuelPlan } from '@/lib/nutrition/plan';
+import { PLAN_STYLES, portionsForSteps } from '@/lib/nutrition/portions';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,19 @@ export default async function AthleteNutritionPage({
   const yesterday = addDays(data.today, -1);
   const now = clockNow();
 
+  // The coach's meal plan turns each meal step into portions in grams.
+  const portions = data.plan ? Object.fromEntries(portionsForSteps(steps, data.plan.config)) : null;
+  const planSource = data.plan
+    ? [
+        data.plan.source === 'athlete' ? 'made for you by your coach' : 'your team plan',
+        // The level is a calorie figure: only for athletes aged 18+.
+        data.showNumbers &&
+          `${data.plan.config.level_kcal} kcal, ${PLAN_STYLES.find((s) => s.id === data.plan!.config.style)?.label.toLowerCase()}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null;
+
   return (
     <Reveal className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
       <FuelToday
@@ -46,6 +60,9 @@ export default async function AthleteNutritionPage({
         initialNow={now}
         timeZone={APP_TIME_ZONE}
         dateLabel={DATE_LABEL.format(new Date(`${data.today}T00:00:00Z`))}
+        portions={portions}
+        planSource={planSource}
+        showNumbers={data.showNumbers}
         planAction={
           <div className="flex flex-wrap gap-2">
             <a

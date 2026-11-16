@@ -5,11 +5,12 @@ export const NUTRITION_COLLECTIONS = {
   meals: 'nutrition_meals',
   checkins: 'nutrition_checkins',
   planChecks: 'nutrition_plan_checks',
+  mealPlans: 'nutrition_meal_plans',
 } as const;
 
 /** Called once per process from lib/db/indexes.ts. */
 export async function ensureNutritionIndexes(db: Db): Promise<void> {
-  const { hydration, meals, checkins, planChecks } = NUTRITION_COLLECTIONS;
+  const { hydration, meals, checkins, planChecks, mealPlans } = NUTRITION_COLLECTIONS;
   await Promise.all([
     db
       .collection(hydration)
@@ -26,6 +27,13 @@ export async function ensureNutritionIndexes(db: Db): Promise<void> {
       .createIndex(
         { athlete_id: 1, date: 1, step_id: 1 },
         { unique: true, name: 'uniq_athlete_date_step' }
+      ),
+    // One team plan per club (athlete_id null) and one plan per athlete.
+    db
+      .collection(mealPlans)
+      .createIndex(
+        { scope: 1, club_id: 1, athlete_id: 1 },
+        { unique: true, name: 'uniq_scope_club_athlete' }
       ),
   ]);
 }
