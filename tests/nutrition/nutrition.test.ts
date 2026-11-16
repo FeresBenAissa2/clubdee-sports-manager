@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { BASE_GLASS_GOAL, FOODS, TRAINING_DAY_BONUS, plateFeedback } from '@/lib/nutrition/catalog';
 import { addDays, dayKey, lastDays, weekStart } from '@/lib/nutrition/dates';
-import { hydrationGoal, hydrationSummary, MIN_DAYS_FOR_HYDRATION_FLAG, trainingTip } from '@/lib/nutrition/tips';
+import {
+  hydrationGoal,
+  hydrationSummary,
+  MIN_DAYS_FOR_HYDRATION_FLAG,
+  trainingTip,
+} from '@/lib/nutrition/tips';
 
 describe('nutrition dates', () => {
   it('uses the club calendar day, not UTC', () => {
@@ -56,12 +61,18 @@ describe('hydration summary for coaches', () => {
 
   it('is empty when nothing was logged', () => {
     expect(hydrationSummary(days, [])).toEqual({ pct: 0, daysTracked: 0 });
-    expect(hydrationSummary(days, [{ date: '2026-11-11', glasses: 0, goal: 8 }])).toEqual({ pct: 0, daysTracked: 0 });
+    expect(hydrationSummary(days, [{ date: '2026-11-11', glasses: 0, goal: 8 }])).toEqual({
+      pct: 0,
+      daysTracked: 0,
+    });
   });
 
   it('measures a new athlete from their first log, not over the whole week', () => {
     // 2 of 8 glasses on the first day of logging: 25 %, not 4 % (2/8 spread over 7 days).
-    expect(hydrationSummary(days, [{ date: '2026-11-11', glasses: 2, goal: 8 }])).toEqual({ pct: 25, daysTracked: 1 });
+    expect(hydrationSummary(days, [{ date: '2026-11-11', glasses: 2, goal: 8 }])).toEqual({
+      pct: 25,
+      daysTracked: 1,
+    });
   });
 
   it('counts days skipped after the first log as zero', () => {

@@ -8,7 +8,14 @@ const visitor: Caller = { service: false, userId: null, role: null };
 const service: Caller = { service: true, userId: null, role: null };
 
 describe('collections that are never exposed to the query client', () => {
-  const sensitive = ['users', 'parent_users', 'nutrition_hydration', 'nutrition_meals', 'nutrition_checkins'];
+  const sensitive = [
+    'users',
+    'parent_users',
+    'nutrition_hydration',
+    'nutrition_meals',
+    'nutrition_checkins',
+    'nutrition_plan_checks',
+  ];
 
   it('cannot be read or written by any signed-in user, even an admin', () => {
     for (const table of sensitive) {
@@ -46,50 +53,109 @@ describe('logs and settings', () => {
 
 describe('nobody promotes themselves', () => {
   it('an athlete cannot become a coach or an athlete of a club on their own', () => {
-    expect(canInsert('coaches', athlete, { user_id: athlete.userId, club_id: 'club-1' })).toBe(false);
+    expect(canInsert('coaches', athlete, { user_id: athlete.userId, club_id: 'club-1' })).toBe(
+      false
+    );
     expect(canInsert('coaches', coach, { user_id: coach.userId, club_id: 'club-2' })).toBe(false);
-    expect(canInsert('athletes', athlete, { user_id: athlete.userId, club_id: 'club-1' })).toBe(false);
+    expect(canInsert('athletes', athlete, { user_id: athlete.userId, club_id: 'club-1' })).toBe(
+      false
+    );
     expect(canInsert('athletes', coach, { user_id: athlete.userId, club_id: 'club-1' })).toBe(true);
   });
 
   it('a role can only be set to athlete by a non-admin', () => {
-    expect(columnViolation('user_roles', athlete, { user_id: athlete.userId, role: 'admin' })).toBe('role');
-    expect(columnViolation('user_roles', athlete, { user_id: athlete.userId, role: 'coach' })).toBe('role');
-    expect(columnViolation('user_roles', athlete, { user_id: athlete.userId, role: 'athlete' })).toBeNull();
+    expect(columnViolation('user_roles', athlete, { user_id: athlete.userId, role: 'admin' })).toBe(
+      'role'
+    );
+    expect(columnViolation('user_roles', athlete, { user_id: athlete.userId, role: 'coach' })).toBe(
+      'role'
+    );
+    expect(
+      columnViolation('user_roles', athlete, { user_id: athlete.userId, role: 'athlete' })
+    ).toBeNull();
     expect(columnViolation('user_roles', admin, { user_id: 'someone', role: 'admin' })).toBeNull();
   });
 
   it('an athlete cannot activate their own membership or pick their club', () => {
     const profile = { id: athlete.userId, role: null, membership_status: 'pending', club_id: null };
-    expect(columnViolation('profiles', athlete, { membership_status: 'active' }, profile)).toBe('membership_status');
+    expect(columnViolation('profiles', athlete, { membership_status: 'active' }, profile)).toBe(
+      'membership_status'
+    );
     expect(columnViolation('profiles', athlete, { club_id: 'club-1' }, profile)).toBe('club_id');
     expect(columnViolation('profiles', athlete, { role: 'admin' }, profile)).toBe('role');
     // What the app legitimately does as the athlete:
     expect(columnViolation('profiles', athlete, { full_name: 'New Name' }, profile)).toBeNull();
-    expect(columnViolation('profiles', athlete, { membership_status: 'pending' }, { ...profile, membership_status: 'rejected' })).toBeNull();
-    expect(columnViolation('profiles', athlete, { membership_status: null, email: 'a@b.tn' })).toBeNull();
+    expect(
+      columnViolation(
+        'profiles',
+        athlete,
+        { membership_status: 'pending' },
+        { ...profile, membership_status: 'rejected' }
+      )
+    ).toBeNull();
+    expect(
+      columnViolation('profiles', athlete, { membership_status: null, email: 'a@b.tn' })
+    ).toBeNull();
   });
 
   it('sending back an unchanged protected value is not a violation', () => {
-    const profile = { id: athlete.userId, role: 'athlete', membership_status: 'active', club_id: 'club-1' };
-    expect(columnViolation('profiles', athlete, { membership_status: 'active', club_id: 'club-1' }, profile)).toBeNull();
-    expect(columnViolation('athletes', athlete, { club_id: 'club-1', nickname: 'Sam' }, { club_id: 'club-1' })).toBeNull();
-    expect(columnViolation('athletes', athlete, { club_id: 'club-2' }, { club_id: 'club-1' })).toBe('club_id');
+    const profile = {
+      id: athlete.userId,
+      role: 'athlete',
+      membership_status: 'active',
+      club_id: 'club-1',
+    };
+    expect(
+      columnViolation(
+        'profiles',
+        athlete,
+        { membership_status: 'active', club_id: 'club-1' },
+        profile
+      )
+    ).toBeNull();
+    expect(
+      columnViolation(
+        'athletes',
+        athlete,
+        { club_id: 'club-1', nickname: 'Sam' },
+        { club_id: 'club-1' }
+      )
+    ).toBeNull();
+    expect(columnViolation('athletes', athlete, { club_id: 'club-2' }, { club_id: 'club-1' })).toBe(
+      'club_id'
+    );
   });
 
   it('a coach approves memberships but cannot hand out the admin role', () => {
     const profile = { id: 'someone', role: null, membership_status: 'pending', club_id: null };
-    expect(columnViolation('profiles', coach, { membership_status: 'active', club_id: 'club-1' }, profile)).toBeNull();
+    expect(
+      columnViolation(
+        'profiles',
+        coach,
+        { membership_status: 'active', club_id: 'club-1' },
+        profile
+      )
+    ).toBeNull();
     expect(columnViolation('profiles', coach, { role: 'admin' }, profile)).toBe('role');
-    expect(columnViolation('coaches', coach, { club_id: 'club-9' }, { club_id: 'club-1' })).toBe('club_id');
+    expect(columnViolation('coaches', coach, { club_id: 'club-9' }, { club_id: 'club-1' })).toBe(
+      'club_id'
+    );
   });
 
   it('an athlete cannot approve their own application', () => {
     const application = { user_id: athlete.userId, status: 'pending', review_info: null };
-    expect(columnViolation('membership_applications', athlete, { status: 'approved' }, application)).toBe('status');
-    expect(columnViolation('membership_applications', athlete, { status: 'approved' })).toBe('status');
-    expect(columnViolation('membership_applications', athlete, { status: 'pending', personal_info: {} })).toBeNull();
-    expect(columnViolation('membership_applications', coach, { status: 'approved' }, application)).toBeNull();
+    expect(
+      columnViolation('membership_applications', athlete, { status: 'approved' }, application)
+    ).toBe('status');
+    expect(columnViolation('membership_applications', athlete, { status: 'approved' })).toBe(
+      'status'
+    );
+    expect(
+      columnViolation('membership_applications', athlete, { status: 'pending', personal_info: {} })
+    ).toBeNull();
+    expect(
+      columnViolation('membership_applications', coach, { status: 'approved' }, application)
+    ).toBeNull();
   });
 });
 

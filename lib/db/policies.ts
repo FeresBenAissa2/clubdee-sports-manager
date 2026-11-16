@@ -19,7 +19,11 @@ type Rule = 'public' | 'auth' | { roles?: AppRole[]; own?: string };
 
 const STAFF: AppRole[] = ['admin', 'coach'];
 const ADMIN_ONLY: Rule = { roles: ['admin'] };
-const STAFF_WRITE = { insert: { roles: STAFF }, update: { roles: STAFF }, delete: { roles: STAFF } };
+const STAFF_WRITE = {
+  insert: { roles: STAFF },
+  update: { roles: STAFF },
+  delete: { roles: STAFF },
+};
 
 /** Mirrors the row-level security policies from scripts/FULL_SETUP.sql. */
 const POLICIES: Record<string, Partial<Record<Action, Rule>>> = {
@@ -118,6 +122,7 @@ const SERVICE_ONLY = new Set([
   'nutrition_hydration',
   'nutrition_meals',
   'nutrition_checkins',
+  'nutrition_plan_checks',
 ]);
 
 /**
@@ -158,14 +163,20 @@ const PROTECTED_COLUMNS: Record<string, Record<string, ColumnRule>> = {
   },
 };
 
-const sameValue = (a: unknown, b: unknown) => a === b || ((a === null || a === undefined) && (b === null || b === undefined));
+const sameValue = (a: unknown, b: unknown) =>
+  a === b || ((a === null || a === undefined) && (b === null || b === undefined));
 
 /**
  * Name of the first protected column `values` tries to set that the caller may not
  * set, or null when the write is fine. Pass `existing` for updates so that sending
  * back an unchanged value is not treated as a change.
  */
-export function columnViolation(table: string, caller: Caller, values: Row, existing?: Row): string | null {
+export function columnViolation(
+  table: string,
+  caller: Caller,
+  values: Row,
+  existing?: Row
+): string | null {
   if (caller.service || caller.role === 'admin') return null;
   const rules = PROTECTED_COLUMNS[table];
   if (!rules) return null;
@@ -195,7 +206,11 @@ function ruleFor(table: string, action: Action): Rule {
  * Row filter a caller is limited to: `null` means every row, `false` means none
  * (reads come back empty and updates/deletes touch nothing, like Postgres RLS).
  */
-export function rowFilter(table: string, action: Action, caller: Caller): Filter<Document> | null | false {
+export function rowFilter(
+  table: string,
+  action: Action,
+  caller: Caller
+): Filter<Document> | null | false {
   if (caller.service) return null;
   if (SERVICE_ONLY.has(table)) return false;
   const rule = ruleFor(table, action);

@@ -279,3 +279,25 @@ export function nextSession(
   }
   return best;
 }
+
+/**
+ * Share of planned steps an athlete ticked (0–100) over `days` (oldest first).
+ *
+ * Like the hydration average, it starts on the first day with a tick, so days before
+ * the athlete started using the plan do not count against them.
+ */
+export function planSummary(
+  days: string[],
+  plannedOn: (date: string) => number,
+  doneOn: ReadonlyMap<string, number>
+): { pct: number; daysTracked: number } {
+  const first = days.findIndex((date) => (doneOn.get(date) ?? 0) > 0);
+  if (first < 0) return { pct: 0, daysTracked: 0 };
+  const tracked = days.slice(first);
+  const planned = tracked.reduce((sum, date) => sum + plannedOn(date), 0);
+  const done = tracked.reduce(
+    (sum, date) => sum + Math.min(doneOn.get(date) ?? 0, plannedOn(date)),
+    0
+  );
+  return { pct: planned ? Math.round((done / planned) * 100) : 0, daysTracked: tracked.length };
+}

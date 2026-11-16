@@ -11,10 +11,16 @@ import { createClient } from '@/lib/db/server';
 import { BASE_GLASS_GOAL, type CheckInScores, type MealType } from './catalog';
 import { addDays, dayKey, lastDays, weekStart } from './dates';
 import { NUTRITION_COLLECTIONS as COLLECTIONS } from './indexes';
-import type { PlanSession } from './plan';
-import { hydrationGoal, hydrationSummary, MIN_DAYS_FOR_HYDRATION_FLAG } from './tips';
+import { buildFuelPlan, planSummary, type FuelStep, type PlanSession } from './plan';
+import { hydrationGoal, hydrationSummary, nutritionFlags, type TeamFlag } from './tips';
 
-export { hydrationGoal, trainingTip, type SessionSlot } from './tips';
+export {
+  hydrationGoal,
+  nutritionFlags,
+  trainingTip,
+  type SessionSlot,
+  type TeamFlag,
+} from './tips';
 
 export interface HydrationDoc {
   id: string;
@@ -140,6 +146,160 @@ export async function getSessionsOn(clubId: string, date: string): Promise<PlanS
     .toArray();
 }
 
+/** A club's sessions for several days at once, keyed by `club_id|date`. */
+async function sessionsByClubDay(
+  clubIds: string[],
+  days: string[]
+): Promise<Map<string, PlanSession[]>> {
+  const db = await getDb();
+  const rows = await db
+    .collection<PlanSession & { club_id: string; session_date: string }>('training_sessions')
+    .find(
+      { club_id: { $in: clubIds }, session_date: { $in: days }, status: { $ne: 'cancelled' } },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          title: 1,
+          start_time: 1,
+          end_time: 1,
+          location: 1,
+          club_id: 1,
+          session_date: 1,
+        },
+        sort: { start_time: 1 },
+      }
+    )
+    .toArray();
+  const map = new Map<string, PlanSession[]>();
+  for (const { club_id, session_date, ...session } of rows) {
+    const key = `${club_id}|${session_date}`;
+    map.set(key, [...(map.get(key) ?? []), session]);
+  }
+  return map;
+}
+
+// ---------------------------------------------------------------------------
+// History (athlete and coach)
+// ---------------------------------------------------------------------------
+
+export interface HistoryMeal {
+  id: string;
+  meal_type: MealType;
+  items: string[];
+  note: string;
+  plan_step: string | null;
+}
+
+/** Everything recorded for one athlete on one day, with the plan that day's sessions gave. */
+export interface NutritionDay {
+  date: string;
+  sessions: PlanSession[];
+  steps: FuelStep[];
+  done: string[];
+  meals: HistoryMeal[];
+  glasses: number;
+  goal: number;
+}
+
+/** `days` oldest first. Callers must already have checked who may see this athlete. */
+export async function getNutritionHistory(
+  athlete: AthleteRef,
+  days: string[]
+): Promise<NutritionDay[]> {
+  const db = await getDb();
+  const range = { athlete_id: athlete.id, date: { $in: days } };
+  const [sessions, checks, meals, hydration] = await Promise.all([
+    sessionsByClubDay([athlete.club_id], days),
+    db
+      .collection<PlanCheckDoc>(COLLECTIONS.planChecks)
+      .find(range, { projection: { _id: 0, date: 1, step_id: 1 } })
+      .toArray(),
+    db
+      .collection<MealDoc>(COLLECTIONS.meals)
+      .find(range, { ...NO_ID, sort: { created_at: 1 } })
+      .toArray(),
+    db.collection<HydrationDoc>(COLLECTIONS.hydration).find(range, NO_ID).toArray(),
+  ]);
+
+  const today = dayKey();
+  return days.map((date) => {
+    const daySessions = sessions.get(`${athlete.club_id}|${date}`) ?? [];
+    const water = hydration.find((h) => h.date === date);
+    const steps = buildFuelPlan(daySessions);
+    const stepIds = new Set(steps.map((s) => s.id));
+    return {
+      date,
+      sessions: daySessions,
+      steps,
+      // Ticks of steps that left the plan (a session moved or was cancelled) no longer count.
+      done: checks.filter((c) => c.date === date && stepIds.has(c.step_id)).map((c) => c.step_id),
+      meals: meals
+        .filter((m) => m.date === date)
+        .map((m) => ({
+          id: m.id,
+          meal_type: m.meal_type,
+          items: m.items,
+          note: m.note,
+          plan_step: m.plan_step ?? null,
+        })),
+      glasses: water?.glasses ?? 0,
+      // Today's goal follows today's schedule (as on the athlete page); past days keep the goal they had.
+      goal:
+        date === today
+          ? hydrationGoal(daySessions.length)
+          : (water?.goal ?? hydrationGoal(daySessions.length)),
+    };
+  });
+}
+
+export interface StaffAthlete extends AthleteRef {
+  clubName: string;
+}
+
+/** The athlete, only if they belong to one of the given clubs (the staff member's). */
+export async function getAthleteForStaff(
+  athleteId: string,
+  clubIds: string[]
+): Promise<StaffAthlete | null> {
+  if (typeof athleteId !== 'string' || clubIds.length === 0) return null;
+  const db = await getDb();
+  const athlete = await db
+    .collection<AthleteRef>('athletes')
+    .findOne(
+      { id: athleteId, club_id: { $in: clubIds } },
+      { projection: { _id: 0, id: 1, user_id: 1, club_id: 1, first_name: 1, last_name: 1 } }
+    );
+  if (!athlete) return null;
+  const club = await db
+    .collection('clubs')
+    .findOne({ id: athlete.club_id }, { projection: { _id: 0, name: 1 } });
+  return { ...athlete, clubName: (club?.name as string | undefined) ?? '' };
+}
+
+export type CheckInEntry = CheckInScores & { week: string; note: string };
+
+/** Weekly check-ins for the given Mondays, oldest first (weeks without one are left out). */
+export async function getCheckInHistory(
+  athleteId: string,
+  weeks: string[]
+): Promise<CheckInEntry[]> {
+  const db = await getDb();
+  const rows = await db
+    .collection<CheckInDoc>(COLLECTIONS.checkins)
+    .find({ athlete_id: athleteId, week: { $in: weeks } }, NO_ID)
+    .sort({ week: 1 })
+    .toArray();
+  return rows.map((c) => ({
+    week: c.week,
+    energy: c.energy,
+    sleep: c.sleep,
+    appetite: c.appetite,
+    legs: c.legs,
+    note: c.note,
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // Athlete view
 // ---------------------------------------------------------------------------
@@ -237,8 +397,6 @@ export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteN
 // Coach view
 // ---------------------------------------------------------------------------
 
-export type TeamFlag = 'low_energy' | 'low_hydration' | 'not_logging';
-
 export interface TeamRow {
   athleteId: string;
   name: string;
@@ -247,6 +405,10 @@ export interface TeamRow {
   /** How many of the last 7 days that average covers (0 when nothing was logged). */
   hydrationDays: number;
   todayGlasses: number;
+  /** Share of fuel-plan steps ticked since the athlete's first tick in the last 7 days (0–100). */
+  planPct: number;
+  /** How many of the last 7 days that share covers (0 when the plan was never used). */
+  planDays: number;
   mealsThisWeek: number;
   lastLog: string | null;
   checkIn: (CheckInScores & { note: string }) | null;
@@ -275,7 +437,7 @@ export async function getTeamNutrition(clubIds: string[]): Promise<TeamNutrition
     .toArray();
   const ids = athletes.map((a) => a.id);
 
-  const [hydration, meals, checkins] = await Promise.all([
+  const [hydration, meals, checkins, planChecks, sessions] = await Promise.all([
     db
       .collection<HydrationDoc>(COLLECTIONS.hydration)
       .find({ athlete_id: { $in: ids }, date: { $gte: days[0] } }, NO_ID)
@@ -291,10 +453,39 @@ export async function getTeamNutrition(clubIds: string[]): Promise<TeamNutrition
       .collection<CheckInDoc>(COLLECTIONS.checkins)
       .find({ athlete_id: { $in: ids }, week: monday }, NO_ID)
       .toArray(),
+    db
+      .collection<PlanCheckDoc>(COLLECTIONS.planChecks)
+      .find(
+        { athlete_id: { $in: ids }, date: { $gte: days[0] } },
+        { projection: { _id: 0, athlete_id: 1, date: 1, step_id: 1 } }
+      )
+      .toArray(),
+    sessionsByClubDay(clubIds, days),
   ]);
 
+  // Step ids planned per club and day (the plan only depends on the club's sessions).
+  const plans = new Map<string, Set<string>>();
+  const planFor = (clubId: string, date: string) => {
+    const key = `${clubId}|${date}`;
+    if (!plans.has(key))
+      plans.set(key, new Set(buildFuelPlan(sessions.get(key) ?? []).map((s) => s.id)));
+    return plans.get(key)!;
+  };
+
   const rows = athletes.map<TeamRow>((athlete) => {
-    const h = hydration.filter((d) => d.athlete_id === athlete.id);
+    const doneByDay = new Map<string, number>();
+    for (const c of planChecks) {
+      // Ticks of steps that left the plan (session moved or cancelled) no longer count.
+      if (c.athlete_id === athlete.id && planFor(athlete.club_id, c.date).has(c.step_id)) {
+        doneByDay.set(c.date, (doneByDay.get(c.date) ?? 0) + 1);
+      }
+    }
+    const plan = planSummary(days, (date) => planFor(athlete.club_id, date).size, doneByDay);
+    // Today's water goal follows today's schedule, as on the athlete's own page.
+    const goalToday = hydrationGoal((sessions.get(`${athlete.club_id}|${today}`) ?? []).length);
+    const h = hydration
+      .filter((d) => d.athlete_id === athlete.id)
+      .map((d) => (d.date === today ? { ...d, goal: goalToday } : d));
     const m = meals.filter((d) => d.athlete_id === athlete.id);
     const c = checkins.find((d) => d.athlete_id === athlete.id) ?? null;
 
@@ -305,13 +496,13 @@ export async function getTeamNutrition(clubIds: string[]): Promise<TeamNutrition
     ].sort();
     const lastLog = logDates.at(-1) ?? null;
 
-    const flags: TeamFlag[] = [];
-    if (!lastLog || lastLog < staleBefore) flags.push('not_logging');
-    // Not on the first days: someone who started logging today is not "low", just new.
-    else if (daysTracked >= MIN_DAYS_FOR_HYDRATION_FLAG && hydrationPct < 50)
-      flags.push('low_hydration');
-    if (c && (c.energy <= 2 || (c.energy + c.sleep + c.appetite + c.legs) / 4 <= 2.5))
-      flags.push('low_energy');
+    const flags = nutritionFlags({
+      lastLog,
+      staleBefore,
+      hydrationPct,
+      hydrationDays: daysTracked,
+      checkIn: c,
+    });
 
     return {
       athleteId: athlete.id,
@@ -319,6 +510,8 @@ export async function getTeamNutrition(clubIds: string[]): Promise<TeamNutrition
       hydrationPct,
       hydrationDays: daysTracked,
       todayGlasses: h.find((d) => d.date === today)?.glasses ?? 0,
+      planPct: plan.pct,
+      planDays: plan.daysTracked,
       mealsThisWeek: m.length,
       lastLog,
       checkIn: c
