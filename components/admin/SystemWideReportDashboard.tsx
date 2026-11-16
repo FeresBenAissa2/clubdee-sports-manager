@@ -270,7 +270,7 @@ export function SystemWideReportDashboard() {
         <Card>
           <CardContent className="py-12 text-center text-gray-500">
             <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>Please select parameters and click "Generate report" ToViewResult</p>
+            <p>Please select parameters and click "Generate report" to see the results</p>
           </CardContent>
         </Card>
       )}

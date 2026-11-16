@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getCoachSessions } from '@/lib/coach/session-actions';
 import { SessionList } from '@/components/coach/SessionList';
 import { CreateSessionDialog } from '@/components/coach/CreateSessionDialog';
+import { getCoachAccess } from '@/lib/coach/session-access';
 
 export default async function CoachSessionsPage() {
   const db = await createClient();
@@ -29,6 +30,8 @@ export default async function CoachSessionsPage() {
   if (!coach) {
     redirect('/dashboard/coach');
   }
+
+  const access = await getCoachAccess(db, user.id);
 
   // Fetch all sessions for stats and list
   const { data: sessions, error: sessionsError } = await getCoachSessions();
@@ -72,7 +75,7 @@ export default async function CoachSessionsPage() {
             </div>
             
             {/* Create Session Button */}
-            <CreateSessionDialog />
+            <CreateSessionDialog clubs={access?.clubs ?? []} />
           </div>
         </div>
       </div>

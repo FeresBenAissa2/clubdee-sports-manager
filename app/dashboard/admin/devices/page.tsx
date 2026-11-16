@@ -51,7 +51,7 @@ export default async function DevicesPage() {
                   Login Latest
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">
-                  CountCheck in
+                  Check-ins
                 </th>
               </tr>
             </thead>

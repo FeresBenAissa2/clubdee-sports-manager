@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/db/server';
 import { revalidatePath } from 'next/cache';
+import { improvementOf } from '@/lib/utils/performance';
 import {
   PerformanceRecord,
   ImprovementResult,
@@ -12,10 +13,10 @@ import {
 
 /**
  * Performance Integration Module
- * 
+ *
  * Handles the integration between Coach performance recording and Athlete dashboard.
  * Implements the PerformanceIntegration interface from the design document.
- * 
+ *
  * Features:
  * - Coach records performance → Athletes see it in their dashboard
  * - Improvement detection for recommendations
@@ -25,10 +26,10 @@ import {
 /**
  * Called when a coach records a new performance test result.
  * Triggers revalidation of athlete dashboards to show the new record.
- * 
+ *
  * @param record - The newly created performance record
  * @throws IntegrationError if the operation fails
- * 
+ *
  * **Validates: Requirements 4.1** - Performance record visibility in athlete dashboard
  */
 export async function onPerformanceRecorded(record: PerformanceRecord): Promise<void> {
@@ -36,7 +37,7 @@ export async function onPerformanceRecorded(record: PerformanceRecord): Promise<
     // Revalidate athlete dashboard paths to show new performance record
     revalidatePath('/dashboard/athlete');
     revalidatePath('/dashboard/athlete/performance');
-    
+
     // Revalidate coach paths as well
     revalidatePath('/dashboard/coach/performance');
     revalidatePath(`/dashboard/coach/athletes/${record.athleteId}`);
@@ -55,11 +56,11 @@ export async function onPerformanceRecorded(record: PerformanceRecord): Promise<
 /**
  * Checks if an athlete has improved in any test type.
  * Compares the latest two records of the same test type.
- * 
+ *
  * @param athleteId - The ID of the athlete
  * @returns ImprovementResult if improvement detected, null otherwise
  * @throws IntegrationError if the operation fails
- * 
+ *
  * **Validates: Requirements 4.2** - Performance improvement detection
  */
 export async function checkImprovement(athleteId: string): Promise<ImprovementResult | null> {
@@ -82,10 +83,10 @@ export async function checkImprovement(athleteId: string): Promise<ImprovementRe
       return null;
     }
 
-    // Group records by test_type
+    // Group records by test (type + name): only results of the same test are comparable
     const recordsByType: Record<string, any[]> = {};
     for (const record of records) {
-      const testType = record.test_type as string;
+      const testType = `${record.test_type}${record.test_name ? ` - ${record.test_name}` : ''}`;
       if (!recordsByType[testType]) {
         recordsByType[testType] = [];
       }
@@ -98,9 +99,10 @@ export async function checkImprovement(athleteId: string): Promise<ImprovementRe
         const latest = typeRecords[0];
         const previous = typeRecords[1];
 
-        // Calculate improvement (higher score is better)
-        if (latest.score > previous.score) {
-          const improvementPercentage = ((latest.score - previous.score) / previous.score) * 100;
+        // Improvement depends on the unit: for timed tests a lower score is better
+        const progress = improvementOf(previous.score, latest.score, latest.unit);
+        if (progress.improved) {
+          const improvementPercentage = progress.percentage;
 
           return {
             hasImproved: true,
@@ -128,12 +130,12 @@ export async function checkImprovement(athleteId: string): Promise<ImprovementRe
 /**
  * Gets the performance trend data for an athlete in a specific test type.
  * Used for generating charts showing progress over time.
- * 
+ *
  * @param athleteId - The ID of the athlete
  * @param testType - The type of test to get trend for
  * @returns TrendData with data points and trend direction
  * @throws IntegrationError if the operation fails
- * 
+ *
  * **Validates: Requirements 4.4** - Performance history with trend analysis
  */
 export async function getPerformanceTrend(
@@ -163,16 +165,16 @@ export async function getPerformanceTrend(
 
     // Calculate trend direction
     let trend: 'improving' | 'declining' | 'stable' = 'stable';
-    
+
     if (dataPoints.length >= 2) {
       const firstHalf = dataPoints.slice(0, Math.floor(dataPoints.length / 2));
       const secondHalf = dataPoints.slice(Math.floor(dataPoints.length / 2));
-      
+
       const firstAvg = firstHalf.reduce((sum, p) => sum + p.score, 0) / firstHalf.length;
       const secondAvg = secondHalf.reduce((sum, p) => sum + p.score, 0) / secondHalf.length;
-      
+
       const changePercent = ((secondAvg - firstAvg) / firstAvg) * 100;
-      
+
       if (changePercent > 5) {
         trend = 'improving';
       } else if (changePercent < -5) {
@@ -197,7 +199,7 @@ export async function getPerformanceTrend(
 
 /**
  * Gets all performance records for an athlete.
- * 
+ *
  * @param athleteId - The ID of the athlete
  * @returns Array of performance records
  * @throws IntegrationError if the operation fails
@@ -243,7 +245,7 @@ export async function getAthletePerformanceRecords(
 
 /**
  * Gets the latest performance record for an athlete.
- * 
+ *
  * @param athleteId - The ID of the athlete
  * @returns The latest performance record or null
  */
@@ -294,7 +296,7 @@ export async function getLatestPerformanceRecord(
 
 /**
  * Gets all unique test types for an athlete.
- * 
+ *
  * @param athleteId - The ID of the athlete
  * @returns Array of unique test types
  */

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- documents and filter values are dynamic */
 import { randomUUID } from 'node:crypto';
 import type { Db, Document, Filter } from 'mongodb';
-import { canInsert, rowFilter, type Caller } from '../policies';
+import { canInsert, columnViolation, rowAllowed, rowFilter, type Caller } from '../policies';
 import { columnType, referencingTables, resolveRelation, tableDef, type Relation } from '../schema';
 import type { ColumnType } from '../schema-types';
 import { dbError, type DbError, type DbResult, type Row } from '../types';
@@ -435,12 +435,30 @@ function defaultValue(kind: string, value: unknown, type: ColumnType): unknown {
   return type === 'timestamptz' ? toStored(type, value) : structuredClone(value);
 }
 
+/**
+ * Column pairs that mean the same thing. The schema inherited both names for the
+ * session of an attendance row and the app reads either one, so keep them equal.
+ */
+const MIRRORED_COLUMNS: Record<string, [string, string][]> = {
+  attendance: [['session_id', 'training_session_id']],
+};
+
+function mirrorColumns(table: string, doc: Row): void {
+  for (const [a, b] of MIRRORED_COLUMNS[table] ?? []) {
+    const hasA = doc[a] !== undefined && doc[a] !== null;
+    const hasB = doc[b] !== undefined && doc[b] !== null;
+    if (hasA && !hasB) doc[b] = doc[a];
+    else if (hasB && !hasA) doc[a] = doc[b];
+  }
+}
+
 export function prepareInsert(table: string, row: Row, nullColumns: string[] = []): Doc {
   const def = tableDef(table);
   const doc: Doc = {};
   for (const [column, value] of Object.entries(row)) {
     if (value !== undefined) doc[column] = toStored(columnType(table, column), value);
   }
+  mirrorColumns(table, doc);
   for (const column of nullColumns) if (!(column in doc)) doc[column] = null;
   for (const [column, col] of Object.entries(def.columns)) {
     if (!(column in doc) && col.default) doc[column] = defaultValue(col.default.kind, (col.default as { value?: unknown }).value, col.type);
@@ -456,6 +474,7 @@ function prepareUpdate(table: string, values: Row): Row {
   for (const [column, value] of Object.entries(values)) {
     if (value !== undefined) set[column] = toStored(columnType(table, column), value);
   }
+  mirrorColumns(table, set);
   if ('updated_at' in tableDef(table).columns && values.updated_at === undefined) set.updated_at = new Date();
   return set;
 }
@@ -497,6 +516,18 @@ function result(data: any, count: number | null = null, status = 200): DbResult 
 
 function failure(error: DbError, status = 400): DbResult {
   return { data: null, error, count: null, status, statusText: 'Error' };
+}
+
+/** A write the access rules refuse (optionally naming the protected column that was touched). */
+function denied(table: string, column?: string): DbResult {
+  return failure(
+    dbError(
+      `new row violates row-level security policy for table "${table}"`,
+      '42501',
+      column ? `Column "${column}" cannot be set by this user.` : null
+    ),
+    403
+  );
 }
 
 function applySingle(state: QueryState, rows: Row[], count: number | null): DbResult {
@@ -541,6 +572,10 @@ export async function executeQuery(db: Db, state: QueryState, caller: Caller): P
         if (input.some((row) => !canInsert(state.table, caller, row))) {
           return failure(dbError(`new row violates row-level security policy for table "${state.table}"`, '42501'), 403);
         }
+        for (const row of input) {
+          const column = columnViolation(state.table, caller, row);
+          if (column) return denied(state.table, column);
+        }
         const union = input.length > 1 && state.defaultToNull !== false ? [...new Set(input.flatMap(Object.keys))] : [];
         const docs = input.map((row) => prepareInsert(state.table, row, union));
         if (!docs.length) return returnRows([]);
@@ -561,9 +596,16 @@ export async function executeQuery(db: Db, state: QueryState, caller: Caller): P
           const existing = conflict.every((c) => row[c] !== undefined) ? await collection.findOne(match) : null;
           if (existing) {
             if (state.ignoreDuplicates) continue;
+            // Overwriting a row is an update: the caller must be allowed to update that row.
+            // (Checking only the insert rule let anyone upsert their own role to admin.)
+            if (!rowAllowed(rowFilter(state.table, 'update', caller), existing)) return denied(state.table);
+            const column = columnViolation(state.table, caller, row, existing);
+            if (column) return denied(state.table, column);
             await collection.updateOne({ _id: existing._id }, { $set: prepareUpdate(state.table, row) });
             ids.push(existing._id);
           } else {
+            const column = columnViolation(state.table, caller, row);
+            if (column) return denied(state.table, column);
             const doc = prepareInsert(state.table, row, []);
             const { insertedId } = await collection.insertOne(doc);
             ids.push(insertedId);
@@ -576,7 +618,12 @@ export async function executeQuery(db: Db, state: QueryState, caller: Caller): P
         const access = rowFilter(state.table, 'update', caller);
         if (access === false) return returnRows([]);
         const filter = and(access, toMongoFilter(state.table, plan.filters));
-        const ids = (await collection.find(filter, { projection: { _id: 1 } }).toArray()).map((d) => d._id);
+        const targets = await collection.find(filter).toArray();
+        const ids = targets.map((d) => d._id);
+        for (const target of targets) {
+          const column = columnViolation(state.table, caller, state.values ?? {}, target);
+          if (column) return denied(state.table, column);
+        }
         if (ids.length) {
           await collection.updateMany({ _id: { $in: ids } }, { $set: prepareUpdate(state.table, state.values ?? {}) });
         }

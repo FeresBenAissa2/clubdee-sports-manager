@@ -17,6 +17,7 @@
     "test:contracts:consumer": "vitest --run tests/contracts/consumer",
     "test:contracts:provider": "vitest --run tests/contracts/provider",
     "db:seed": "tsx scripts/mongo/seed.ts",
+    "db:seed:nutrition-demo": "tsx scripts/mongo/seed-nutrition-demo.ts",
     "db:export-supabase": "tsx scripts/mongo/export-supabase.ts",
     "db:schema": "node scripts/mongo/generate-schema.mjs",
     "db:check": "tsx scripts/check-db-connection.ts"

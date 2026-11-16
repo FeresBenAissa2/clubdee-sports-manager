@@ -22,6 +22,9 @@ interface Announcement {
   created_at: string;
   updated_at: string;
   read_count?: number;
+  /** Athletes in the announcement's club (a coach can have several clubs). */
+  total_athletes?: number;
+  club_name?: string;
 }
 
 interface AnnouncementListProps {
@@ -30,6 +33,7 @@ interface AnnouncementListProps {
 }
 
 export function AnnouncementList({ announcements, totalAthletes = 0 }: AnnouncementListProps) {
+  const totalFor = (announcement: Announcement) => announcement.total_athletes ?? totalAthletes;
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
@@ -73,7 +77,7 @@ export function AnnouncementList({ announcements, totalAthletes = 0 }: Announcem
         id: announcement.id,
         is_pinned: !announcement.is_pinned,
       });
-      
+
       if (result.success) {
         toast({
           title: 'Success',
@@ -102,6 +106,7 @@ export function AnnouncementList({ announcements, totalAthletes = 0 }: Announcem
   };
 
   const getReadPercentage = (announcement: Announcement) => {
+    const totalAthletes = totalFor(announcement);
     if (totalAthletes === 0) return 0;
     const readCount = getReadCount(announcement);
     return Math.round((readCount / totalAthletes) * 100);
@@ -337,13 +342,14 @@ export function AnnouncementList({ announcements, totalAthletes = 0 }: Announcem
           </p>
 
           {/* Read Statistics */}
-          {totalAthletes > 0 && (
+          {totalFor(announcement) > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-100">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1 text-gray-600">
                   <Eye className="h-3.5 w-3.5" />
                   <span>
-                    Read {getReadCount(announcement)} / {totalAthletes} athletes
+                    Read {getReadCount(announcement)} / {totalFor(announcement)} athletes
+                    {announcement.club_name ? ` · ${announcement.club_name}` : ''}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

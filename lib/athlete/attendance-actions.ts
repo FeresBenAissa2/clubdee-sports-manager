@@ -1,10 +1,12 @@
 'use server';
 
 import { createClient } from '@/lib/db/server';
+import { createAdminClient } from '@/lib/db/admin';
 import { revalidatePath } from 'next/cache';
 import { createAuditLog } from '@/lib/audit/actions';
 import { Database } from '@/types/database.types';
 import { invalidatePattern } from '@/lib/utils/cache';
+import { localDateKey } from '@/lib/utils/local-date';
 
 type TrainingSession = Database['public']['Tables']['training_sessions']['Row'];
 type AttendanceLog = Database['public']['Tables']['attendance']['Row'];
@@ -76,7 +78,7 @@ export async function getAthleteSessions(filter?: {
       .range(offset, offset + limit - 1);
 
     // Apply filters
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateKey();
 
     if (filter?.upcoming) {
       query = query.gte('session_date', today);
@@ -334,8 +336,10 @@ export async function athleteCheckIn(sessionId: string): Promise<{
       notes: null,
     };
 
+    // Attendance rows are staff-writable only. A self check-in has just been validated
+    // above (own club, time window, no duplicate), so the server records it for the athlete.
     // @ts-ignore
-    const { data: newAttendance, error: insertError } = await db
+    const { data: newAttendance, error: insertError } = await createAdminClient()
       .from('attendance')
       // @ts-ignore
       .insert(attendanceData)

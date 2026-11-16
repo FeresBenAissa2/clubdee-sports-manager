@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { AttendanceSheet } from './AttendanceSheet';
 import { Users } from 'lucide-react';
 import { Database } from '@/types/database.types';
@@ -28,7 +28,9 @@ export function AttendanceSheetWrapper({
   initialSession,
 }: AttendanceSheetWrapperProps) {
   const router = useRouter();
-  const [athletes] = useState(initialAthletes);
+  // Read straight from props: router.refresh() delivers the new attendance, and a
+  // useState copy would keep showing the old status until a full reload.
+  const athletes = initialAthletes;
 
   // Handle refresh after attendance update
   const handleUpdate = useCallback(() => {
@@ -61,7 +63,7 @@ export function AttendanceSheetWrapper({
       <div className="space-y-6">
         {/* Session Information */}
         <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="text-lg font-semibold mb-4">InformationTraining</h2>
+          <h2 className="text-lg font-semibold mb-4">Session details</h2>
           <div className="space-y-3">
             <div>
               <h3 className="text-sm font-medium text-gray-900">
@@ -118,14 +120,14 @@ export function AttendanceSheetWrapper({
 
         {/* Attendance Summary */}
         <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="text-lg font-semibold mb-4">SUMMARYAttendance</h2>
+          <h2 className="text-lg font-semibold mb-4">Attendance summary</h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-gray-400" />
                 <span className="text-sm text-gray-600">All</span>
               </div>
-              <span className="text-sm font-medium">{athletes.length} people</span>
+              <span className="text-sm font-medium">{athletes.length} {athletes.length === 1 ? 'athlete' : 'athletes'}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -133,7 +135,7 @@ export function AttendanceSheetWrapper({
                 <div className="h-2 w-2 rounded-full bg-green-500" />
                 <span className="text-sm text-gray-600">Present</span>
               </div>
-              <span className="text-sm font-medium text-green-600">{presentCount} people</span>
+              <span className="text-sm font-medium text-green-600">{presentCount} {presentCount === 1 ? 'athlete' : 'athletes'}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -141,7 +143,7 @@ export function AttendanceSheetWrapper({
                 <div className="h-2 w-2 rounded-full bg-yellow-500" />
                 <span className="text-sm text-gray-600">Late</span>
               </div>
-              <span className="text-sm font-medium text-yellow-600">{lateCount} people</span>
+              <span className="text-sm font-medium text-yellow-600">{lateCount} {lateCount === 1 ? 'athlete' : 'athletes'}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -149,7 +151,7 @@ export function AttendanceSheetWrapper({
                 <div className="h-2 w-2 rounded-full bg-blue-500" />
                 <span className="text-sm text-gray-600">Excused</span>
               </div>
-              <span className="text-sm font-medium text-blue-600">{excusedCount} people</span>
+              <span className="text-sm font-medium text-blue-600">{excusedCount} {excusedCount === 1 ? 'athlete' : 'athletes'}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -157,16 +159,16 @@ export function AttendanceSheetWrapper({
                 <div className="h-2 w-2 rounded-full bg-red-500" />
                 <span className="text-sm text-gray-600">Absent</span>
               </div>
-              <span className="text-sm font-medium text-red-600">{absentCount} people</span>
+              <span className="text-sm font-medium text-red-600">{absentCount} {absentCount === 1 ? 'athlete' : 'athletes'}</span>
             </div>
 
             {unmarkedCount > 0 && (
               <div className="flex items-center justify-between pt-2 border-t">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-gray-300" />
-                  <span className="text-sm text-gray-600">Unchecked</span>
+                  <span className="text-sm text-gray-600">Not marked yet</span>
                 </div>
-                <span className="text-sm font-medium text-gray-600">{unmarkedCount} people</span>
+                <span className="text-sm font-medium text-gray-600">{unmarkedCount} {unmarkedCount === 1 ? 'athlete' : 'athletes'}</span>
               </div>
             )}
 
@@ -197,9 +199,9 @@ export function AttendanceSheetWrapper({
           <h3 className="text-sm font-medium text-blue-900 mb-2">💡 Tips</h3>
           <ul className="text-xs text-blue-800 space-y-1">
             <li>• Select status from the menu to the right of each athlete</li>
-            <li>• The system willSaveAutomatically as soon as it changesStatus</li>
-            <li>• SaPresentAutomobileAddNotesas much as you want.</li>
-            <li>• Use ChannelsSearchto findAthletesFaster</li>
+            <li>• Each change is saved automatically</li>
+            <li>• You can add a note for any athlete</li>
+            <li>• Use the search box to find an athlete quickly</li>
           </ul>
         </div>
       </div>

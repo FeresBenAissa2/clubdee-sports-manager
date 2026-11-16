@@ -5,6 +5,7 @@ import { Calendar, Clock, MapPin, Users, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { SessionManageButtons } from '@/components/coach/SessionManageButtons';
 
 interface SessionDetailsPageProps {
   params: Promise<{
@@ -102,8 +103,8 @@ export default async function SessionDetailsPage({
 
   const currentStatus = statusConfig[status];
 
-  // Check if session can be edited/cancelled (only scheduled sessions)
-  const canEdit = status === 'scheduled';
+  // A session can be edited or cancelled until it starts.
+  const canEdit = new Date(`${session.session_date}T${session.start_time}`).getTime() > new Date().getTime();
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -280,18 +281,17 @@ export default async function SessionDetailsPage({
           </Button>
         </Link>
         {canEdit && (
-          <>
-            <Link href={`/dashboard/coach/sessions/${id}/edit`}>
-              <Button variant="outline" size="lg">
-                Edit
-              </Button>
-            </Link>
-            <Link href={`/dashboard/coach/sessions/${id}/cancel`}>
-              <Button variant="destructive" size="lg">
-                Cancel
-              </Button>
-            </Link>
-          </>
+          <SessionManageButtons
+            session={{
+              id,
+              title: session.title,
+              description: session.description,
+              session_date: session.session_date,
+              start_time: session.start_time,
+              end_time: session.end_time,
+              location: session.location,
+            }}
+          />
         )}
       </div>
     </div>

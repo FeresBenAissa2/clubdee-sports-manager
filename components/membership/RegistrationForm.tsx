@@ -108,8 +108,9 @@ export default function RegistrationForm({
       return true;
     } catch (error: any) {
       const errors: Record<string, string> = {};
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      const issues = error.issues ?? error.errors; // Zod 4 exposes `issues`
+      if (issues) {
+        issues.forEach((err: any) => {
           errors[err.path[0]] = err.message;
         });
       }

@@ -27,10 +27,8 @@ export default async function CoachAttendanceMarkingPage({ params }: PageProps) 
 
   // Get coach profile
   const { data: coach } = await db
-    .from('profiles')
+    .from('coaches')
     .select('id, club_id')
-    .eq('id', user.id)
-    .eq('role', 'coach')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();

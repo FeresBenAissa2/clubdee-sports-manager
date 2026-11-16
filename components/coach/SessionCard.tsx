@@ -212,8 +212,10 @@ export function SessionCard({
               <Users className="h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Present</p>
-              <p className="text-sm font-bold text-black">{session.attendance_count || 0} people</p>
+              <p className="text-xs text-gray-500">Attended</p>
+              <p className="text-sm font-bold text-black">
+                {session.attendance_count || 0} {session.attendance_count === 1 ? 'athlete' : 'athletes'}
+              </p>
             </div>
           </div>
           <div className="text-xs text-gray-400">

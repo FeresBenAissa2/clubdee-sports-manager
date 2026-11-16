@@ -87,6 +87,7 @@ export function CoachesTable({ coaches, clubs }: CoachesTableProps) {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={`Delete ${coach.first_name} ${coach.last_name}`}
                       onClick={() => setDeletingCoach(coach)}
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />

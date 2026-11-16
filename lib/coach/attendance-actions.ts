@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createAuditLog } from '@/lib/audit/actions';
 import { Database } from '@/types/database.types';
 import { invalidatePattern } from '@/lib/utils/cache';
+import { canManageSession, getCoachAccess } from './session-access';
 
 type AttendanceLog = Database['public']['Tables']['attendance']['Row'];
 type AttendanceLogInsert = Database['public']['Tables']['attendance']['Insert'];
@@ -95,8 +96,9 @@ export async function getSessionAttendance(sessionId: string): Promise<{
       return { error: 'Training session not found' };
     }
 
+    const access = await getCoachAccess(db, user.id);
     // @ts-ignore
-    if (session.coach_id !== coach.id) {
+    if (!access || !canManageSession(access, session)) {
       return { error: 'Unauthorized: You cannot view another coach\'s schedule' };
     }
 
@@ -120,8 +122,9 @@ export async function getSessionAttendance(sessionId: string): Promise<{
           updated_at
         )
       `)
+      // Athletes of the club the session belongs to (not the coach's first club).
       // @ts-ignore
-      .eq('club_id', coach.club_id)
+      .eq('club_id', session.club_id)
       .eq('attendance.training_session_id', sessionId)
       .order('first_name', { ascending: true });
 
@@ -206,8 +209,9 @@ export async function markAttendance(data: {
       return { error: 'Training session not found' };
     }
 
+    const access = await getCoachAccess(db, user.id);
     // @ts-ignore
-    if (session.coach_id !== coach.id) {
+    if (!access || !canManageSession(access, session)) {
       return { error: 'Unauthorized: You cannot take attendance on another coach\'s schedule' };
     }
 
@@ -223,8 +227,8 @@ export async function markAttendance(data: {
     }
 
     // @ts-ignore
-    if (athlete.club_id !== coach.club_id) {
-      return { error: 'Athletes are not in the same club' };
+    if (athlete.club_id !== session.club_id) {
+      return { error: 'This athlete is not a member of the session\'s club' };
     }
 
     // Check if attendance already exists
@@ -558,8 +562,9 @@ export async function updateAttendance(
       return { error: 'Attendance record not found' };
     }
 
+    const access = await getCoachAccess(db, user.id);
     // @ts-ignore - TypeScript has issues with nested joins
-    if (attendance.training_sessions.coach_id !== coach.id) {
+    if (!access || !attendance.training_sessions || !canManageSession(access, attendance.training_sessions)) {
       return { error: 'Unauthorized: You cannot edit attendance on another coach\'s schedule' };
     }
 

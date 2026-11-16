@@ -1,5 +1,7 @@
 'use client';
 
+import { lowerIsBetter } from '@/lib/utils/performance';
+
 interface PerformanceDataPoint {
   test_date: string;
   test_name: string;
@@ -51,7 +53,7 @@ export default function PerformanceChart({ data }: PerformanceChartProps) {
               <h4 className="font-medium text-sm">{testName}</h4>
               <div className="flex items-center gap-2 text-xs">
                 {improvement !== 0 && (
-                  <span className={improvement > 0 ? 'text-green-600' : 'text-red-600'}>
+                  <span className={(lowerIsBetter(unit) ? improvement < 0 : improvement > 0) ? 'text-green-600' : 'text-red-600'}>
                     {improvement > 0 ? '+' : ''}{improvement.toFixed(1)} {unit}
                   </span>
                 )}

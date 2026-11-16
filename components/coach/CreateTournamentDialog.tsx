@@ -18,10 +18,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export function CreateTournamentDialog() {
+export function CreateTournamentDialog({ clubs = [] }: { clubs?: { id: string; name: string }[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [clubId, setClubId] = useState(clubs[0]?.id ?? '');
   const [formData, setFormData] = useState({
     name: '',
     sport_type: '',
@@ -34,9 +36,15 @@ export function CreateTournamentDialog() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+    if (formData.end_date < formData.start_date) {
+      setError('End date must be on or after the start date');
+      return;
+    }
     setLoading(true);
 
     const result = await createTournament({
+      club_id: clubId || undefined,
       name: formData.name,
       sport_type: formData.sport_type,
       location: formData.location || undefined,
@@ -47,9 +55,11 @@ export function CreateTournamentDialog() {
     });
 
     if (result.error) {
-      alert(result.error);
+      setError(result.error);
     } else {
       setOpen(false);
+      // The list loads its own data; tell it to reload.
+      window.dispatchEvent(new Event('tournaments:changed'));
       setFormData({
         name: '',
         sport_type: '',
@@ -77,10 +87,37 @@ export function CreateTournamentDialog() {
         <DialogHeader>
           <DialogTitle>Create new tournament</DialogTitle>
           <DialogDescription>
-            Enter InformationTournament ofthat Khun SaPresentAutomobileSelect athletePresentYes
+            Enter the tournament details. You can select athletes once it is created.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {clubs.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="tournament-club">Club *</Label>
+              <select
+                id="tournament-club"
+                value={clubId}
+                onChange={(e) => setClubId(e.target.value)}
+                disabled={loading}
+                required
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {clubs.map((club) => (
+                  <option key={club.id} value={club.id}>
+                    {club.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Athletes are selected from this club.</p>
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="name">Tournament name *</Label>
             <Input

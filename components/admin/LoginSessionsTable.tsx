@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { Monitor, Smartphone, Tablet, Globe, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
 
 interface DeviceInfo {
   platform?: string;
@@ -203,7 +202,7 @@ export function LoginSessionsTable({ sessions }: LoginSessionsTableProps) {
                 <TableHead>Device type</TableHead>
                 <TableHead>Platform</TableHead>
                 <TableHead>Browser</TableHead>
-                <TableHead>TimeSign in</TableHead>
+                <TableHead>Signed in at</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -258,7 +257,7 @@ export function LoginSessionsTable({ sessions }: LoginSessionsTableProps) {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
                         {format(new Date(session.created_at), 'dd MMM yyyy HH:mm', {
-                          locale: th,
+                          
                         })}
                       </span>
                     </div>

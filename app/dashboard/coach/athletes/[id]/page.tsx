@@ -8,6 +8,7 @@ import CreateProgressReportDialog from '@/components/coach/CreateProgressReportD
 import { CreateAssignmentDialog } from '@/components/coach/CreateAssignmentDialog';
 import { AthleteAssignmentsList } from '@/components/coach/AthleteAssignmentsList';
 import { ViewApplicationDialog } from '@/components/coach/ViewApplicationDialog';
+import { getCoachAccess } from '@/lib/coach/session-access';
 
 interface Params {
   id: string;
@@ -25,16 +26,10 @@ export default async function AthleteDetailPage({ params }: { params: Promise<Pa
     redirect('/login');
   }
 
-  // Get coach profile
-  const coachResult = await db
-    .from('profiles')
-    .select('id, club_id')
-    .eq('id', user.id)
-    .eq('role', 'coach')
-    .maybeSingle();
-  const coach = coachResult.data as { id: string; club_id: string } | null;
+  // A coach may be linked to several clubs; the athlete can belong to any of them.
+  const access = await getCoachAccess(db, user.id);
 
-  if (!coach) {
+  if (!access) {
     redirect('/dashboard/coach');
   }
 
@@ -43,8 +38,8 @@ export default async function AthleteDetailPage({ params }: { params: Promise<Pa
     .from('athletes')
     .select('*')
     .eq('id', id)
-    .eq('club_id', coach.club_id)
-    .single();
+    .in('club_id', access.clubIds)
+    .maybeSingle();
   const athlete = athleteResult.data as any;
 
   if (!athlete) {
@@ -71,7 +66,7 @@ export default async function AthleteDetailPage({ params }: { params: Promise<Pa
       `
       *,
       training_sessions (
-        session_name,
+        title,
         session_date
       )
     `
@@ -322,7 +317,7 @@ export default async function AthleteDetailPage({ params }: { params: Promise<Pa
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="font-semibold text-black text-sm">
-                        {log.training_sessions?.session_name || 'Training'}
+                        {log.training_sessions?.title || 'Training'}
                       </p>
                       <p className="text-xs text-gray-500">
                         {new Date(

@@ -6,12 +6,14 @@ import { createAuditLog } from '@/lib/audit/actions';
 import { Database } from '@/types/database.types';
 import { invalidatePattern } from '@/lib/utils/cache';
 import { sanitizeInput } from '@/lib/utils/sanitization';
+import { canManageSession, getCoachAccess } from './session-access';
 import { 
   validateRequired, 
   validateLength, 
   validateDateRange,
   validateTimeRange 
 } from '@/lib/utils/enhanced-validation';
+import { localDateKey } from '@/lib/utils/local-date';
 
 type TrainingSession = Database['public']['Tables']['training_sessions']['Row'];
 type TrainingSessionInsert = Database['public']['Tables']['training_sessions']['Insert'];
@@ -28,6 +30,8 @@ export async function createSession(data: {
   start_time: string;
   end_time: string;
   location: string;
+  /** Which of the coach's clubs the session is for (defaults to the first one). */
+  club_id?: string;
 }): Promise<{ success?: boolean; data?: TrainingSession; error?: string }> {
   try {
     const db = await createClient();
@@ -52,6 +56,13 @@ export async function createSession(data: {
 
     if (coachError || !coach) {
       return { error: 'Coach profile not found' };
+    }
+
+    // A coach with several clubs chooses which one the session is for.
+    const access = await getCoachAccess(db, user.id);
+    const clubId = data.club_id || (coach as Coach).club_id;
+    if (!access || !access.clubIds.includes(clubId)) {
+      return { error: 'You can only schedule sessions for your own clubs' };
     }
 
     // Comprehensive input validation
@@ -97,7 +108,7 @@ export async function createSession(data: {
     // Note: coach_id in training_sessions references auth.users(id), not coaches(id)
     const coachData = coach as Coach;
     const sessionData = {
-      club_id: coachData.club_id,
+      club_id: clubId,
       coach_id: coachData.user_id, // Use user_id since FK references auth.users
       created_by: user.id, // Required for RLS policy check
       title: sanitizedTitle,
@@ -193,9 +204,10 @@ export async function updateSession(
       return { error: 'Training session not found' };
     }
 
-    // Note: coach_id references auth.users(id), so compare with user_id
+    // Any coach of the session's club (or its creator) may manage it.
+    const access = await getCoachAccess(db, user.id);
     // @ts-ignore
-    if (session.coach_id !== coach.user_id) {
+    if (!access || !canManageSession(access, session)) {
       return { error: 'Unauthorized: You cannot edit another coach\'s schedule' };
     }
 
@@ -311,9 +323,10 @@ export async function cancelSession(sessionId: string): Promise<{ success?: bool
       return { error: 'Training session not found' };
     }
 
-    // Note: coach_id references auth.users(id), so compare with user_id
+    // Any coach of the session's club (or its creator) may manage it.
+    const access = await getCoachAccess(db, user.id);
     // @ts-ignore
-    if (session.coach_id !== coach.user_id) {
+    if (!access || !canManageSession(access, session)) {
       return { error: 'Unauthorized: You cannot cancel another coach\'s schedule' };
     }
 
@@ -395,20 +408,19 @@ export async function getCoachSessions(filter?: {
     const limit = filter?.limit || 100; // Default limit
     const offset = filter?.offset || 0;
 
-    // Note: coach_id in training_sessions references auth.users(id), not coaches(id)
-    // So we use coach.user_id to match
+    // Every session of the clubs this coach belongs to (a coach can have several clubs).
+    const access = await getCoachAccess(db, user.id);
     // @ts-ignore
     let query = db
       .from('training_sessions')
       .select('*', { count: 'exact' })
-      // @ts-ignore
-      .eq('coach_id', coach.user_id) // Use user_id since FK references auth.users
+      .in('club_id', access?.clubIds ?? [])
       .order('session_date', { ascending: true })
       .order('start_time', { ascending: true })
       .range(offset, offset + limit - 1);
 
     // Apply filters
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateKey();
     
     if (filter?.upcoming) {
       query = query.gte('session_date', today);
@@ -423,7 +435,25 @@ export async function getCoachSessions(filter?: {
       return { error: 'An error occurred while loading training sessions' };
     }
 
-    return { data: sessions, total: count || 0 };
+    // How many athletes showed up (present or late) in each session.
+    const sessionIds = ((sessions ?? []) as { id: string }[]).map((session) => session.id);
+    const attended = new Map<string, number>();
+    if (sessionIds.length > 0) {
+      const { data: attendanceRows } = await db
+        .from('attendance')
+        .select('training_session_id, status')
+        .in('training_session_id', sessionIds)
+        .in('status', ['present', 'late']);
+      ((attendanceRows ?? []) as { training_session_id: string }[]).forEach((row) => {
+        attended.set(row.training_session_id, (attended.get(row.training_session_id) ?? 0) + 1);
+      });
+    }
+    const withCounts = ((sessions ?? []) as TrainingSession[]).map((session) => ({
+      ...session,
+      attendance_count: attended.get(session.id) ?? 0,
+    }));
+
+    return { data: withCounts, total: count || 0 };
   } catch (error) {
     console.error('Unexpected error in getCoachSessions:', error);
     return { error: 'An unexpected error occurred' };

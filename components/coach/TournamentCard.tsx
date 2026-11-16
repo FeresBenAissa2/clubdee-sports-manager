@@ -22,6 +22,7 @@ import {
 export function TournamentCard({ tournament, onUpdate }: any) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const statusColors: any = {
     upcoming: 'bg-blue-500',
@@ -34,7 +35,7 @@ export function TournamentCard({ tournament, onUpdate }: any) {
     upcoming: 'Upcoming',
     ongoing: 'In progress',
     completed: 'Completed',
-    cancelled: 'Cancel',
+    cancelled: 'Cancelled',
   };
 
   async function handleDelete() {
@@ -43,7 +44,7 @@ export function TournamentCard({ tournament, onUpdate }: any) {
     if (result.success) {
       onUpdate();
     } else {
-      alert(result.error);
+      setError(result.error ?? 'Could not delete the tournament');
     }
     setDeleting(false);
   }
@@ -61,6 +62,7 @@ export function TournamentCard({ tournament, onUpdate }: any) {
                 {statusLabels[tournament.status]}
               </Badge>
               <Badge variant="outline">{tournament.tournament_type}</Badge>
+              {tournament.club_name && <Badge variant="secondary">{tournament.club_name}</Badge>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -74,7 +76,7 @@ export function TournamentCard({ tournament, onUpdate }: any) {
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" disabled={deleting}>
+                <Button variant="destructive" size="sm" disabled={deleting} aria-label={`Delete ${tournament.name}`}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -82,7 +84,7 @@ export function TournamentCard({ tournament, onUpdate }: any) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirm deletion</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to removeTournament "{tournament.name}"?
+                    Are you sure you want to delete the tournament "{tournament.name}"? Its athlete selection is deleted too.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -95,6 +97,11 @@ export function TournamentCard({ tournament, onUpdate }: any) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {error && (
+          <p role="alert" className="rounded-md bg-red-50 p-2 text-sm text-red-600">
+            {error}
+          </p>
+        )}
         <div className="flex items-center text-sm text-muted-foreground">
           <Calendar className="h-4 w-4 mr-2" />
           {new Date(tournament.start_date).toLocaleDateString('en-US')} - {new Date(tournament.end_date).toLocaleDateString('en-US')}
@@ -107,8 +114,8 @@ export function TournamentCard({ tournament, onUpdate }: any) {
         )}
         <div className="flex items-center text-sm text-muted-foreground">
           <Users className="h-4 w-4 mr-2" />
-          Athletes: {participantCount} people
-          {tournament.max_participants && ` / ${tournament.max_participants} people`}
+          Athletes: {participantCount}
+          {tournament.max_participants ? ` / ${tournament.max_participants} places` : ''}
         </div>
         {tournament.notes && (
           <p className="text-sm text-muted-foreground mt-2">{tournament.notes}</p>

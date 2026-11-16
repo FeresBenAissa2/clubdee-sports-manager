@@ -146,7 +146,7 @@ export function ApplicationReviewCard({ application, onReviewed }: ApplicationRe
     const statusMap: Record<string, { label: string; variant: any }> = {
       pending: { label: 'Pending review', variant: 'secondary' },
       approved: { label: 'Approved', variant: 'default' },
-      rejected: { label: 'already rejected', variant: 'error' },
+      rejected: { label: 'Rejected', variant: 'error' },
       info_requested: { label: 'Request additional information', variant: 'outline' },
     };
 
@@ -197,7 +197,7 @@ export function ApplicationReviewCard({ application, onReviewed }: ApplicationRe
             )}
             {personalInfo?.blood_type && (
               <div className="text-gray-600">
-                BLOOD GROUP: {personalInfo.blood_type}
+                Blood type: {personalInfo.blood_type}
               </div>
             )}
           </div>
@@ -208,13 +208,13 @@ export function ApplicationReviewCard({ application, onReviewed }: ApplicationRe
           )}
           {personalInfo?.emergency_contact && (
             <div className="text-sm text-gray-600">
-              <span className="font-medium">Emergency Contact:</span>{' '}
+              <span className="font-medium">Emergency contact:</span>{' '}
               {personalInfo.emergency_contact}
             </div>
           )}
           {personalInfo?.medical_conditions && (
             <div className="text-sm text-gray-600">
-              <span className="font-medium">Health History:</span>{' '}
+              <span className="font-medium">Health notes:</span>{' '}
               {personalInfo.medical_conditions}
             </div>
           )}
@@ -281,10 +281,9 @@ export function ApplicationReviewCard({ application, onReviewed }: ApplicationRe
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>RejectApplication</DialogTitle>
+                <DialogTitle>Reject application</DialogTitle>
                 <DialogDescription>
-                  Please provide a rejection reason
-                  This reason will beSubmitLet the candidate know.
+                  Please give a reason. The applicant will see it and can apply again.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">

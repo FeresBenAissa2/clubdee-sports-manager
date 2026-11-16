@@ -1,4 +1,4 @@
-# School project — 6 modules
+# School project — modules
 
 Trimmed from ClubDee for a 6-member Next.js / PWA course project.
 Database stays on **PostgreSQL (Supabase)**.
@@ -13,6 +13,7 @@ Database stays on **PostgreSQL (Supabase)**.
 | 4 | **Performance Tracking** | Physical test records & analytics (not goals/assignments) | `/*/performance` |
 | 5 | **Announcements** | Club news / pinned / priority posts | `/*/announcements` |
 | 6 | **Tournaments** | Competition events (distinct from regular training sessions) | `/dashboard/coach/tournaments` |
+| 7 | **Nutrition** | Hydration tracker, meal log (Tunisian dishes), weekly check-in, coach team view | `/dashboard/athlete/nutrition`, `/dashboard/coach/nutrition` |
 
 ## Explicitly removed (overlap or out of scope)
 
@@ -33,3 +34,4 @@ Database stays on **PostgreSQL (Supabase)**.
 4. Performance = measured test results over time  
 5. Announcements = one-way club communication  
 6. Tournaments = competitive events, not weekly practice  
+7. Nutrition = daily habits (water, meals, how you feel), linked to the session schedule  

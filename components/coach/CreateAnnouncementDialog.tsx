@@ -25,8 +25,9 @@ import { Bell, Loader2 } from 'lucide-react';
 import { createAnnouncement } from '@/lib/coach/announcement-actions';
 import { useToast } from '@/hooks/useToast';
 
-export function CreateAnnouncementDialog() {
+export function CreateAnnouncementDialog({ clubs = [] }: { clubs?: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
+  const [clubId, setClubId] = useState(clubs[0]?.id ?? '');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -42,7 +43,7 @@ export function CreateAnnouncementDialog() {
     setLoading(true);
 
     try {
-      const result = await createAnnouncement(formData);
+      const result = await createAnnouncement({ ...formData, club_id: clubId || undefined });
 
       if (result.success) {
         toast({
@@ -85,13 +86,35 @@ export function CreateAnnouncementDialog() {
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create announcementNew</DialogTitle>
+            <DialogTitle>New announcement</DialogTitle>
             <DialogDescription>
-              Create announcementto alertAthletesInClubFormula
+              Share news or reminders with the athletes of your club
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Club (only when the coach has several) */}
+            {clubs.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="announcement-club">Club *</Label>
+                <select
+                  id="announcement-club"
+                  value={clubId}
+                  onChange={(e) => setClubId(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {clubs.map((club) => (
+                    <option key={club.id} value={club.id}>
+                      {club.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500">Only athletes of this club will see the announcement.</p>
+              </div>
+            )}
+
             {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title">Announcement title *</Label>

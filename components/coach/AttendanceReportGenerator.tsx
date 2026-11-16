@@ -95,7 +95,7 @@ export function AttendanceReportGenerator() {
             Report parameters
           </CardTitle>
           <CardDescription>
-            SelectRangeDateandAthletesRequiredViewReport
+            Choose a date range and, optionally, one athlete
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -183,7 +183,7 @@ export function AttendanceReportGenerator() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Athlete name</TableHead>
-                    <TableHead className="text-center">All time</TableHead>
+                    <TableHead className="text-center">Sessions</TableHead>
                     <TableHead className="text-center">Present</TableHead>
                     <TableHead className="text-center">Absent</TableHead>
                     <TableHead className="text-center">Late</TableHead>
@@ -268,7 +268,7 @@ export function AttendanceReportGenerator() {
         <Card>
           <CardContent className="py-12 text-center text-gray-500">
             <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>Please select parameters and click "Generate report" ToViewResult</p>
+            <p>Please select parameters and click "Generate report" to see the results</p>
           </CardContent>
         </Card>
       )}

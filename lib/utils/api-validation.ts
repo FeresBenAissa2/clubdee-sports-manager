@@ -7,6 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sanitizeObject, sanitizeInput } from './sanitization';
 import { z, ZodType } from 'zod';
 
+/** Zod 4 lists problems in `issues`; older versions also had `errors`. */
+function zodIssues(error: unknown): { path: PropertyKey[]; message: string; code: string }[] {
+  const e = error as { issues?: unknown; errors?: unknown };
+  const list = e?.issues ?? e?.errors;
+  return Array.isArray(list) ? (list as { path: PropertyKey[]; message: string; code: string }[]) : [];
+}
+
+
 export interface ApiValidationError {
   field: string;
   message: string;
@@ -57,7 +65,7 @@ export async function validateRequestBody<T>(
     const result = schema.safeParse(sanitized);
 
     if (!result.success) {
-      const errors: ApiValidationError[] = (result.error as any).errors.map((err: any) => ({
+      const errors: ApiValidationError[] = zodIssues(result.error).map((err) => ({
         field: err.path.join('.'),
         message: err.message,
         code: err.code,
@@ -104,7 +112,7 @@ export function validateQueryParams(
     const result = schema.safeParse(params);
 
     if (!result.success) {
-      const errors: ApiValidationError[] = (result.error as any).errors.map((err: any) => ({
+      const errors: ApiValidationError[] = zodIssues(result.error).map((err) => ({
         field: err.path.join('.'),
         message: err.message,
         code: err.code,

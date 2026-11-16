@@ -43,6 +43,38 @@ async function activityStart(db: Db, id: string): Promise<{ activity: Row; start
   return { activity, start };
 }
 
+/**
+ * Who may call each function that changes data or reveals other people's data.
+ * These run with direct database access, so /api/db would otherwise let any visitor
+ * approve an application or change a system setting. Functions not listed only
+ * report on the caller and are open.
+ */
+type Guard = 'signed-in' | 'staff' | 'admin' | { ownOr: 'staff' | 'admin'; arg: string };
+
+const GUARDS: Record<string, Guard> = {
+  add_activity_log: 'signed-in',
+  cleanup_old_idempotency_keys: 'signed-in',
+  update_application_status: 'staff',
+  generate_activity_qr_token: 'staff',
+  update_feature_flag: 'admin',
+  update_system_setting: 'admin',
+  check_duplicate_pending_application: { ownOr: 'staff', arg: 'p_user_id' },
+  get_device_statistics: { ownOr: 'admin', arg: 'p_user_id' },
+};
+
+async function allowed(db: Db, fn: string, args: Row, caller: Caller): Promise<boolean> {
+  if (caller.service) return true;
+  const guard = GUARDS[fn];
+  if (!guard) return true;
+  if (!caller.userId) return false;
+  if (guard === 'signed-in') return true;
+  const role = await roleOf(db, caller.userId);
+  if (role === 'admin') return true;
+  const level = typeof guard === 'string' ? guard : guard.ownOr;
+  if (level === 'staff' && role === 'coach') return true;
+  return typeof guard !== 'string' && args[guard.arg] === caller.userId;
+}
+
 /** Ports of the Postgres functions the app calls through `.rpc()`. */
 const FUNCTIONS: Record<string, RpcFn> = {
   get_user_role: (db, _args, caller) => roleOf(db, caller.userId),
@@ -206,6 +238,15 @@ export async function executeRpc(db: Db, fn: string, args: Row | undefined, call
       count: null,
       status: 404,
       statusText: 'Not Found',
+    };
+  }
+  if (!(await allowed(db, fn, args ?? {}, caller))) {
+    return {
+      data: null,
+      error: dbError(`permission denied for function ${fn}`, '42501'),
+      count: null,
+      status: 403,
+      statusText: 'Forbidden',
     };
   }
   try {

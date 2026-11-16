@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Activity,
+  Apple,
   BarChart3,
   Building2,
   CalendarDays,
@@ -99,6 +100,7 @@ const NAV: Record<ShellRole, NavSection[]> = {
         { label: 'Sessions', href: '/dashboard/coach/sessions', icon: CalendarDays },
         { label: 'Attendance', href: '/dashboard/coach/attendance', icon: ClipboardCheck },
         { label: 'Performance', href: '/dashboard/coach/performance', icon: Activity },
+        { label: 'Nutrition', href: '/dashboard/coach/nutrition', icon: Apple },
         { label: 'Reports', href: '/dashboard/coach/reports', icon: BarChart3 },
       ],
     },
@@ -121,6 +123,7 @@ const NAV: Record<ShellRole, NavSection[]> = {
         { label: 'Schedule', href: '/dashboard/athlete/schedule', icon: CalendarDays },
         { label: 'Attendance', href: '/dashboard/athlete/attendance', icon: ClipboardCheck },
         { label: 'Performance', href: '/dashboard/athlete/performance', icon: Activity },
+        { label: 'Nutrition', href: '/dashboard/athlete/nutrition', icon: Apple },
       ],
     },
     {
@@ -151,6 +154,7 @@ const MOBILE_TABS: Record<ShellRole, string[]> = {
     '/dashboard/athlete',
     '/dashboard/athlete/schedule',
     '/dashboard/athlete/performance',
+    '/dashboard/athlete/nutrition',
     '/dashboard/athlete/announcements',
   ],
 };

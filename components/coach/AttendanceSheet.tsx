@@ -119,7 +119,7 @@ export function AttendanceSheet({ sessionId, athletes, onUpdate }: AttendanceShe
     <div className="space-y-4">
       {/* Search Bar */}
       <div className="space-y-2">
-        <Label htmlFor="search">SearchAthletes</Label>
+        <Label htmlFor="search">Search athletes</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input

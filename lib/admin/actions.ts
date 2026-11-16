@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/db/server';
 import { revalidatePath } from 'next/cache';
+import { deleteNutritionData } from '@/lib/nutrition/data';
+import { localDateKey } from '@/lib/utils/local-date';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -37,7 +39,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     const { count: sessionsCount } = await db
       .from('training_sessions')
       .select('*', { count: 'exact', head: true })
-      .gte('session_date', thirtyDaysAgo.toISOString().split('T')[0]);
+      .gte('session_date', localDateKey(thirtyDaysAgo));
 
     return {
       totalUsers: (athletesCount || 0) + (coachesCount || 0),
@@ -77,21 +79,45 @@ export async function getAllClubs() {
   }
 }
 
+/** Trims club fields and rejects empty values or a name another club already uses. */
+async function checkClubInput(
+  db: Awaited<ReturnType<typeof createClient>>,
+  name: string,
+  sportType: string,
+  ignoreId?: string
+): Promise<{ name: string; sportType: string } | { error: string }> {
+  const cleanName = (name ?? '').trim().replace(/\s+/g, ' ');
+  const cleanSport = (sportType ?? '').trim().replace(/\s+/g, ' ');
+  if (!cleanName) return { error: 'Club name is required' };
+  if (!cleanSport) return { error: 'Sport type is required' };
+
+  const { data: existing } = await db.from('clubs').select('id, name');
+  const taken = ((existing ?? []) as { id: string; name: string }[]).some(
+    (club) => club.id !== ignoreId && club.name.trim().toLowerCase() === cleanName.toLowerCase()
+  );
+  if (taken) return { error: `A club named "${cleanName}" already exists` };
+
+  return { name: cleanName, sportType: cleanSport };
+}
+
 export async function createClub(name: string, sportType: string, description?: string) {
   try {
     const db = await createClient();
+
+    const checked = await checkClubInput(db, name, sportType);
+    if ('error' in checked) return { success: false, error: checked.error };
 
     const insertData: {
       name: string;
       sport_type: string;
       description?: string;
     } = {
-      name,
-      sport_type: sportType,
+      name: checked.name,
+      sport_type: checked.sportType,
     };
 
-    if (description) {
-      insertData.description = description;
+    if (description?.trim()) {
+      insertData.description = description.trim();
     }
 
     const { data, error } = await db
@@ -123,18 +149,19 @@ export async function updateClub(
   try {
     const db = await createClient();
 
+    const checked = await checkClubInput(db, name, sportType, id);
+    if ('error' in checked) return { success: false, error: checked.error };
+
+    // An emptied description must be saved as empty, not silently kept.
     const updateData: {
       name: string;
       sport_type: string;
-      description?: string;
+      description: string | null;
     } = {
-      name,
-      sport_type: sportType,
+      name: checked.name,
+      sport_type: checked.sportType,
+      description: description?.trim() || null,
     };
-
-    if (description) {
-      updateData.description = description;
-    }
 
     const { data, error } = await db
       .from('clubs')
@@ -160,6 +187,19 @@ export async function updateClub(
 export async function deleteClub(id: string) {
   try {
     const db = await createClient();
+
+    // Deleting a club also deletes its athletes, coaches, sessions and announcements.
+    // Refuse while people are still attached, so no account is left without a club.
+    const [{ count: athleteCount }, { count: coachCount }] = await Promise.all([
+      db.from('athletes').select('*', { count: 'exact', head: true }).eq('club_id', id),
+      db.from('coaches').select('*', { count: 'exact', head: true }).eq('club_id', id),
+    ]);
+    if ((athleteCount ?? 0) > 0 || (coachCount ?? 0) > 0) {
+      return {
+        success: false,
+        error: `This club still has ${athleteCount ?? 0} athlete(s) and ${coachCount ?? 0} coach(es). Move or remove them before deleting the club.`,
+      };
+    }
 
     const { error } = await db.from('clubs').delete().eq('id', id);
 
@@ -260,16 +300,34 @@ export async function getAllAthletes() {
   }
 }
 
+/**
+ * Deletes a coach's or athlete's whole account (sign-in, profile, role and every
+ * record that belongs to them). Removing only the coach/athlete row would leave an
+ * account that can still sign in but has no profile.
+ */
 export async function deleteUser(userId: string, userType: 'athlete' | 'coach') {
   try {
     const db = await createClient();
 
+    const {
+      data: { user: currentUser },
+    } = await db.auth.getUser();
+    if (!currentUser) return { success: false, error: 'Please sign in again' };
+    if (currentUser.id === userId) {
+      return { success: false, error: 'You cannot delete your own account' };
+    }
+
     const table = userType === 'athlete' ? 'athletes' : 'coaches';
+    const { data: rows } = await db.from(table).select('id').eq('user_id', userId);
+    if (!rows || rows.length === 0) {
+      return { success: false, error: `This ${userType} no longer exists` };
+    }
 
-    // Delete from the specific table (will cascade to user_roles and auth.users)
-    const { error } = await db.from(table).delete().eq('user_id', userId);
+    // Admin-only: also removes the profile, role, club rows and their dependent data.
+    const { error } = await db.auth.admin.deleteUser(userId);
+    if (error) throw new Error(error.message);
 
-    if (error) throw error;
+    await deleteNutritionData(userId);
 
     revalidatePath('/dashboard/admin');
     revalidatePath('/dashboard/admin/coaches');

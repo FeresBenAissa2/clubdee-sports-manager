@@ -35,6 +35,7 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -61,9 +62,23 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
 
   async function handleAddAthlete(athleteId: string, status: 'selected' | 'waiting') {
     setAdding(athleteId);
+    setError(null);
     const result = await addAthleteToTournament(tournamentId, athleteId, status);
     if (result.error) {
-      alert(result.error);
+      setError(result.error ?? 'Something went wrong');
+    } else {
+      await loadData();
+    }
+    setAdding(null);
+  }
+
+  // Move an athlete from the waiting list onto the team (the server checks the places left).
+  async function handlePromote(athleteId: string) {
+    setAdding(athleteId);
+    setError(null);
+    const result = await updateParticipantStatus(tournamentId, athleteId, 'selected');
+    if (result.error) {
+      setError(result.error ?? 'Something went wrong');
     } else {
       await loadData();
     }
@@ -73,7 +88,7 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
   async function handleRemoveAthlete(athleteId: string) {
     const result = await removeAthleteFromTournament(tournamentId, athleteId);
     if (result.error) {
-      alert(result.error);
+      setError(result.error ?? 'Something went wrong');
     } else {
       await loadData();
     }
@@ -89,7 +104,7 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
 
   const selectedParticipants = participants.filter(p => p.status === 'selected' || p.status === 'confirmed');
   const waitingParticipants = participants.filter(p => p.status === 'waiting');
-  
+
   const availableAthletes = athletes.filter(a => !a.participantStatus);
   const filteredAthletes = availableAthletes.filter(a =>
     a.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -104,6 +119,12 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </Button>
+
+      {error && (
+        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
       <Card>
         <CardHeader>
@@ -128,8 +149,8 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
           <div className="flex items-center text-sm">
             <Users className="h-4 w-4 mr-2 text-muted-foreground" />
             <span>
-              {selectedParticipants.length} people
-              {tournament.max_participants && ` / ${tournament.max_participants} people`}
+              {selectedParticipants.length} selected
+              {tournament.max_participants ? ` / ${tournament.max_participants} places` : ''}
             </span>
           </div>
         </CardContent>
@@ -207,9 +228,26 @@ export function TournamentManagement({ tournamentId }: { tournamentId: string })
                           <p className="text-sm text-muted-foreground">{p.athlete.email}</p>
                         </div>
                       </div>
-                      <Button size="sm" variant="destructive" onClick={() => handleRemoveAthlete(p.athlete.id)}>
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!!isFull || adding === p.athlete.id}
+                          title={isFull ? 'The tournament is full' : undefined}
+                          onClick={() => handlePromote(p.athlete.id)}
+                        >
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Select
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          aria-label={`Remove ${p.athlete.full_name} from the waitlist`}
+                          onClick={() => handleRemoveAthlete(p.athlete.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

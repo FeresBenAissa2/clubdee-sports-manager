@@ -89,17 +89,20 @@ export default async function CoachDashboard() {
   const { count: totalAthletes } = await db
     .from('athletes')
     .select('*', { count: 'exact', head: true })
-    .eq('club_id', clubId || '');
+    .in('club_id', allClubIds);
 
   const { count: totalSessions } = await db
     .from('training_sessions')
     .select('*', { count: 'exact', head: true })
-    .eq('club_id', clubId || '');
+    .in('club_id', allClubIds);
 
+  // The coach has one row per club; results may be recorded under any of them.
+  const { data: coachRows } = await db.from('coaches').select('id').eq('user_id', user.id);
+  const coachRowIds = ((coachRows ?? []) as { id: string }[]).map((row) => row.id);
   const { count: totalPerformanceRecords } = await db
     .from('performance_records')
     .select('*', { count: 'exact', head: true })
-    .eq('coach_id', profile.id);
+    .in('coach_id', coachRowIds.length > 0 ? coachRowIds : [profile.id]);
 
   // Get pending application count for badge
   let pendingApplications = 0;
@@ -170,8 +173,8 @@ export default async function CoachDashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard reveal title="Athletes" value={totalAthletes || 0} icon={Users} tone="brand" description="In your primary club" />
-        <StatCard reveal title="Training sessions" value={totalSessions || 0} icon={CalendarDays} tone="violet" description="Created for your club" />
+        <StatCard reveal title="Athletes" value={totalAthletes || 0} icon={Users} tone="brand" description={allClubIds.length > 1 ? 'Across all your clubs' : 'In your club'} />
+        <StatCard reveal title="Training sessions" value={totalSessions || 0} icon={CalendarDays} tone="violet" description={allClubIds.length > 1 ? 'Across all your clubs' : 'Scheduled for your club'} />
         <StatCard reveal title="Test results" value={totalPerformanceRecords || 0} icon={TrendingUp} tone="emerald" description="Recorded by you" />
         <StatCard reveal title="Pending applications" value={pendingApplications} icon={FileCheck2} tone="amber" description="Across all your clubs" />
       </div>

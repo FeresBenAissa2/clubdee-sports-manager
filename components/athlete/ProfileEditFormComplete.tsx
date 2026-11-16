@@ -102,8 +102,9 @@ export default function ProfileEditFormComplete({ athlete, application }: Profil
       return true;
     } catch (error: any) {
       const errors: Record<string, string> = {};
-      if (error.errors) {
-        error.errors.forEach((err: any) => {
+      const issues = error.issues ?? error.errors; // Zod 4 exposes `issues`
+      if (issues) {
+        issues.forEach((err: any) => {
           const field = err.path[0];
           errors[field] = err.message;
         });

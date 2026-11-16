@@ -67,12 +67,12 @@ export function AttendanceOverview({ stats }: AttendanceOverviewProps) {
         {/* Total Attendance Records */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Record attendance</CardTitle>
+            <CardTitle className="text-sm font-medium">Attendance records</CardTitle>
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalAttendanceRecords.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">items</p>
+            <p className="text-xs text-muted-foreground">recorded</p>
           </CardContent>
         </Card>
       </div>

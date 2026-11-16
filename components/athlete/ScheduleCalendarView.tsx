@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock, MapPin, User, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { localDateKey } from '@/lib/utils/local-date';
 
 interface Session {
   id: string;
@@ -79,7 +80,7 @@ export function ScheduleCalendarView({ sessions }: ScheduleCalendarViewProps) {
 
   const getDateKey = (day: number) => {
     const d = new Date(year, month, day);
-    return d.toISOString().split('T')[0];
+    return localDateKey(d);
   };
 
   const isToday = (day: number) => {

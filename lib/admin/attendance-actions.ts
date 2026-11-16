@@ -139,12 +139,12 @@ export async function getAllSessions(filter?: {
       return { data: [], total: count || 0 };
     }
 
-    // Fetch attendance counts for all sessions at once
+    // Fetch attendance counts for all sessions at once (late athletes attended too)
     const { data: attendanceCounts, error: countError } = await db
       .from('attendance')
       .select('training_session_id')
       .in('training_session_id', sessionIds)
-      .eq('status', 'present');
+      .in('status', ['present', 'late']);
 
     if (countError) {
       console.error('Attendance count error:', countError);
@@ -152,14 +152,32 @@ export async function getAllSessions(filter?: {
 
     // Create a map of session_id -> count
     const countMap = new Map<string, number>();
-    (attendanceCounts || []).forEach((record: any) => {
+    ((attendanceCounts || []) as { training_session_id: string }[]).forEach((record) => {
       const sessionId = record.training_session_id;
       countMap.set(sessionId, (countMap.get(sessionId) || 0) + 1);
     });
 
-    // Add counts to sessions
-    const sessionsWithCounts = (sessions || []).map((session: any) => ({
+    // training_sessions.coach_id is the coach's user id, so the coach's name cannot be
+    // embedded through the coaches table; look it up by user id instead.
+    type SessionRow = SessionWithDetails;
+    type CoachName = { id: string; first_name: string; last_name: string };
+    const sessionRows = (sessions || []) as SessionRow[];
+    const coachUserIds = [...new Set(sessionRows.map((s) => s.coach_id).filter(Boolean))] as string[];
+    const coachByUser = new Map<string, CoachName>();
+    if (coachUserIds.length > 0) {
+      const { data: coachRows } = await db
+        .from('coaches')
+        .select('id, user_id, first_name, last_name')
+        .in('user_id', coachUserIds);
+      ((coachRows || []) as (CoachName & { user_id: string })[]).forEach((row) => {
+        if (!coachByUser.has(row.user_id)) coachByUser.set(row.user_id, row);
+      });
+    }
+
+    // Add counts and coach names to sessions
+    const sessionsWithCounts = sessionRows.map((session) => ({
       ...session,
+      coaches: session.coaches ?? (session.coach_id ? coachByUser.get(session.coach_id) : undefined),
       attendance_count: countMap.get(session.id) || 0,
     }));
 
