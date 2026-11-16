@@ -14,6 +14,7 @@ import {
 } from './catalog';
 import {
   getCurrentAthlete,
+  getEffectivePlan,
   getSessionsOn,
   hydrationGoal,
   type CheckInDoc,
@@ -24,6 +25,7 @@ import {
 import { dayKey, weekStart } from './dates';
 import { NUTRITION_COLLECTIONS as COLLECTIONS } from './indexes';
 import { buildFuelPlan } from './plan';
+import { portionsForSteps } from './portions';
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -173,11 +175,16 @@ export async function checkPlanStep(stepId: string, items: string[] = []): Promi
   if (typeof stepId !== 'string') return { ok: false, error: 'Unknown step.' };
 
   const date = dayKey();
-  const step = buildFuelPlan(await getSessionsOn(athlete.club_id, date)).find(
-    (s) => s.id === stepId
-  );
+  const [sessions, plan] = await Promise.all([
+    getSessionsOn(athlete.club_id, date),
+    getEffectivePlan(athlete),
+  ]);
+  const steps = buildFuelPlan(sessions);
+  const step = steps.find((s) => s.id === stepId);
   if (!step)
     return { ok: false, error: 'This step is no longer in today’s plan. Refresh the page.' };
+  // With a coach's meal plan, the tick records the planned portions in grams.
+  const portions = plan ? (portionsForSteps(steps, plan.config).get(step.id) ?? []) : [];
 
   const db = await getDb();
   const checks = db.collection<PlanCheckDoc>(COLLECTIONS.planChecks);
@@ -185,9 +192,12 @@ export async function checkPlanStep(stepId: string, items: string[] = []): Promi
 
   let mealId: string | null = null;
   if (step.mealType) {
-    const picked = [...new Set(Array.isArray(items) ? items : [])]
-      .filter((id) => FOOD_BY_ID.has(id))
-      .slice(0, 12);
+    const picked =
+      portions.length > 0
+        ? portions.map((p) => p.food_id)
+        : [...new Set(Array.isArray(items) ? items : [])]
+            .filter((id) => FOOD_BY_ID.has(id))
+            .slice(0, 12);
     mealId = randomUUID();
     await db.collection<MealDoc>(COLLECTIONS.meals).insertOne({
       id: mealId,
@@ -199,6 +209,7 @@ export async function checkPlanStep(stepId: string, items: string[] = []): Promi
       items: picked,
       note: picked.length ? '' : step.title,
       plan_step: step.id,
+      ...(portions.length > 0 && { portions }),
       created_at: new Date(),
     });
   }

@@ -15,12 +15,15 @@ import { CheckInTrend } from '@/components/nutrition/CheckInTrend';
 import { FlagBadge } from '@/components/nutrition/FlagBadge';
 import { NutritionHistory } from '@/components/nutrition/NutritionHistory';
 import { WeeklyTrend } from '@/components/nutrition/WeeklyTrend';
+import { MealPlanCard } from '@/components/nutrition/MealPlanCard';
 import {
   getAthleteForStaff,
   getCheckInHistory,
+  getEffectivePlan,
   getNutritionHistory,
   getStaffClubIds,
 } from '@/lib/nutrition/data';
+import { isAdult } from '@/lib/nutrition/portions';
 import { addDays, clockNow, dayKey, lastDays, monthDays, weekStart } from '@/lib/nutrition/dates';
 import { monthNavigation } from '@/lib/nutrition/history-nav';
 import { planSummary } from '@/lib/nutrition/plan';
@@ -65,11 +68,14 @@ export default async function CoachAthleteNutritionPage({
   );
   const nav = monthNavigation(basePath, query.month, today, { period: period.value });
 
-  const [history, monthHistory, checkIns] = await Promise.all([
+  const [history, monthHistory, checkIns, mealPlan] = await Promise.all([
     getNutritionHistory(athlete, days),
     getNutritionHistory(athlete, monthDays(nav.month, today)),
     getCheckInHistory(athlete.id, weeks),
+    getEffectivePlan(athlete),
   ]);
+  // The period history ends today, so its last day carries today's fuel plan.
+  const todaySteps = history.at(-1)?.date === today ? history.at(-1)!.steps : [];
 
   const plan = planSummary(
     days,
@@ -227,6 +233,13 @@ export default async function CoachAthleteNutritionPage({
           />
         </div>
         <div className="space-y-6 lg:col-span-2">
+          <MealPlanCard
+            athleteId={athlete.id}
+            firstName={first}
+            plan={mealPlan}
+            todaySteps={todaySteps}
+            athleteSeesNumbers={isAdult(athlete.date_of_birth, today)}
+          />
           <CheckInTrend weeks={weeks} entries={checkIns} />
           <p data-reveal className="text-xs text-muted-foreground">
             Flags are prompts for a conversation, not a diagnosis, and always look at the current

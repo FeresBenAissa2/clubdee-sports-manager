@@ -123,6 +123,7 @@ const SERVICE_ONLY = new Set([
   'nutrition_meals',
   'nutrition_checkins',
   'nutrition_plan_checks',
+  'nutrition_meal_plans',
 ]);
 
 /**

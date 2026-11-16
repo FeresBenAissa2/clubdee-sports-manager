@@ -17,8 +17,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FuelStep, StepKind, StepStatus } from '@/lib/nutrition/plan';
+import { sumNutrients, type PortionItem } from '@/lib/nutrition/portions';
 import { cn } from '@/lib/utils';
 import { FoodChip, GROUP_DOT, GROUP_LEGEND } from './FoodChip';
+import { MealDetailsDialog } from './MealDetailsDialog';
+import { PortionList } from './PortionList';
 
 export const STEP_ICON: Record<StepKind, LucideIcon> = {
   breakfast: Sunrise,
@@ -42,14 +45,29 @@ interface StepRowProps {
   last: boolean;
   busy: boolean;
   sessionTitle?: string;
+  /** The coach's portions for this meal, when a meal plan is set. */
+  portions?: PortionItem[];
+  showNumbers: boolean;
   onTick: (items: string[]) => void;
   onUndo: () => void;
 }
 
-function StepRow({ step, status, last, busy, sessionTitle, onTick, onUndo }: StepRowProps) {
+function StepRow({
+  step,
+  status,
+  last,
+  busy,
+  sessionTitle,
+  portions,
+  showNumbers,
+  onTick,
+  onUndo,
+}: StepRowProps) {
   const [picked, setPicked] = useState<string[]>([]);
   const Icon = STEP_ICON[step.kind];
   const done = status === 'done';
+  const planned = portions && portions.length > 0 ? portions : null;
+  const total = planned ? sumNutrients(planned) : null;
   const toggle = (id: string) =>
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
@@ -130,7 +148,16 @@ function StepRow({ step, status, last, busy, sessionTitle, onTick, onUndo }: Ste
           {status === 'missed' ? 'Missed it? No worries — tick it if you ate later.' : step.why}
         </p>
 
-        {step.foods.length > 0 && !done && (
+        {planned && (
+          <div className="mt-3 rounded-xl bg-card/80 px-3 py-1.5 ring-1 ring-border/70">
+            <p className="pt-1 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+              Your portion
+            </p>
+            <PortionList items={planned} />
+          </div>
+        )}
+
+        {!planned && step.foods.length > 0 && !done && (
           <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Ideas — tap what you ate">
             {step.foods.map((id) => (
               <FoodChip
@@ -144,40 +171,49 @@ function StepRow({ step, status, last, busy, sessionTitle, onTick, onUndo }: Ste
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            {done
-              ? 'Nice work.'
-              : step.foods.length > 0
-                ? picked.length > 0
-                  ? `${picked.length} selected`
-                  : 'Tap what you ate (optional)'
-                : null}
+            {planned
+              ? showNumbers && total
+                ? `≈ ${Math.round(total.kcal)} kcal · ${Math.round(total.protein)} g protein`
+                : done
+                  ? 'Nice work.'
+                  : 'Portion set by your coach'
+              : done
+                ? 'Nice work.'
+                : step.foods.length > 0
+                  ? picked.length > 0
+                    ? `${picked.length} selected`
+                    : 'Tap what you ate (optional)'
+                  : null}
           </p>
-          {done ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onUndo}
-              disabled={busy}
-              className="text-muted-foreground"
-            >
-              <RotateCcw className="size-3.5" />
-              Undo
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant={status === 'now' ? 'default' : 'outline'}
-              onClick={() => onTick(picked)}
-              disabled={busy}
-            >
-              <Check className="size-3.5" />
-              {tickLabel(step)}
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {planned && <MealDetailsDialog step={step} items={planned} showNumbers={showNumbers} />}
+            {done ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onUndo}
+                disabled={busy}
+                className="text-muted-foreground"
+              >
+                <RotateCcw className="size-3.5" />
+                Undo
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant={status === 'now' ? 'default' : 'outline'}
+                onClick={() => onTick(planned ? [] : picked)}
+                disabled={busy}
+              >
+                <Check className="size-3.5" />
+                {tickLabel(step)}
+              </Button>
+            )}
+          </div>
         </div>
       </article>
     </li>
@@ -191,6 +227,9 @@ interface FuelTimelineProps {
   sessionTitles: Map<string, string>;
   restDay: boolean;
   action?: React.ReactNode;
+  /** Portions per step id from the coach's meal plan; null without a plan. */
+  portions: Record<string, PortionItem[]> | null;
+  showNumbers: boolean;
   onTick: (step: FuelStep, items: string[]) => void;
   onUndo: (step: FuelStep) => void;
 }
@@ -202,6 +241,8 @@ export function FuelTimeline({
   sessionTitles,
   restDay,
   action,
+  portions,
+  showNumbers,
   onTick,
   onUndo,
 }: FuelTimelineProps) {
@@ -221,6 +262,7 @@ export function FuelTimeline({
             {restDay
               ? 'No training today: regular meals to recover well.'
               : 'Built from your training schedule.'}
+            {portions && ' Portions set by your coach.'}
           </p>
         </div>
         {action}
@@ -235,6 +277,8 @@ export function FuelTimeline({
             last={i === steps.length - 1}
             busy={busyId === step.id}
             sessionTitle={step.sessionId ? sessionTitles.get(step.sessionId) : undefined}
+            portions={portions?.[step.id]}
+            showNumbers={showNumbers}
             onTick={(items) => onTick(step, items)}
             onUndo={() => onUndo(step)}
           />
