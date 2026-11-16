@@ -27,6 +27,15 @@ import { hydrationGoal } from '../../lib/nutrition/tips';
 /** The team plan --history creates (a swimming club, so endurance). */
 const DEMO_PLAN: MealPlanConfig = { level_kcal: 2750, style: 'endurance', meals: {} };
 
+/** Demo athlete's weight over four months [days ago, kg] (168 cm): her own level differs from the team's. */
+const BODY_METRICS: [number, number][] = [
+  [118, 61.5],
+  [88, 61.2],
+  [60, 60.8],
+  [30, 60.4],
+  [2, 60.0],
+];
+
 config({ path: '.env.local', quiet: true });
 
 const MARK = 'Nutrition demo';
@@ -300,8 +309,28 @@ async function main() {
       },
       { upsert: true }
     );
+    // Height and weight about once a month, the last one entered by the athlete herself.
+    for (const [ago, weight] of BODY_METRICS) {
+      await db.collection(C.bodyMetrics).updateOne(
+        { athlete_id: athlete.id, date: addDays(today, -ago) },
+        {
+          $setOnInsert: {
+            id: randomUUID(),
+            user_id: athlete.user_id,
+            club_id: athlete.club_id,
+            height_cm: 168,
+            weight_kg: weight,
+            recorded_by: ago <= 2 ? 'athlete' : 'coach',
+            recorder_id: ago <= 2 ? athlete.user_id : (coachId ?? 'seed'),
+            seed: SEED,
+            created_at: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+    }
     console.log(
-      `Added ${HISTORY_DAYS} past days, ${CHECKINS.length} weekly check-ins and a ${DEMO_PLAN.level_kcal} kcal team meal plan.`
+      `Added ${HISTORY_DAYS} past days, ${CHECKINS.length} weekly check-ins, ${BODY_METRICS.length} measurements and a ${DEMO_PLAN.level_kcal} kcal team meal plan.`
     );
   }
 }

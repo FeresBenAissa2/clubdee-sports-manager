@@ -12,6 +12,16 @@ import { BASE_GLASS_GOAL, type CheckInScores, type MealType } from './catalog';
 import { addDays, dayKey, lastDays, weekStart } from './dates';
 import { NUTRITION_COLLECTIONS as COLLECTIONS } from './indexes';
 import { buildFuelPlan, planSummary, type FuelStep, type PlanSession } from './plan';
+import {
+  ageOn,
+  dailyEnergy,
+  resolveLevel,
+  toSex,
+  weeklyTrainingHours,
+  type EnergyBreakdown,
+  type Goal,
+  type Sex,
+} from './energy';
 import { isAdult, type MealPlanConfig, type PortionItem } from './portions';
 import { hydrationGoal, hydrationSummary, nutritionFlags, type TeamFlag } from './tips';
 
@@ -93,6 +103,7 @@ export interface AthleteRef {
   first_name: string;
   last_name: string;
   date_of_birth?: string | Date | null;
+  gender?: string | null;
 }
 
 const NO_ID = { projection: { _id: 0 } } as const;
@@ -104,6 +115,7 @@ const ATHLETE_FIELDS = {
   first_name: 1,
   last_name: 1,
   date_of_birth: 1,
+  gender: 1,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -346,6 +358,8 @@ export interface AthleteNutrition {
   weekStart: string;
   /** The coach's meal plan for this athlete (own or team), or null when there is none. */
   plan: EffectivePlan | null;
+  /** Body data, goal and the calculated level (with or without a plan). */
+  energy: AthleteEnergy;
   /** Calorie and macro numbers are only shown to athletes aged 18 or more. */
   showNumbers: boolean;
 }
@@ -418,6 +432,7 @@ export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteN
       : null,
     weekStart: monday,
     plan,
+    energy: plan?.energy ?? (await getAthleteEnergy(athlete)),
     showNumbers: isAdult(athlete.date_of_birth, today),
   };
 }
@@ -427,10 +442,118 @@ export async function getAthleteNutrition(athlete: AthleteRef): Promise<AthleteN
 // ---------------------------------------------------------------------------
 
 export interface EffectivePlan {
+  /** Style and meals from the plan; `level_kcal` is the level actually used. */
   config: MealPlanConfig;
-  /** "athlete": set for this athlete; "club": the team default. */
-  source: 'athlete' | 'club';
+  /** Where style and meals come from: the athlete's own plan, the team plan, or automatic. */
+  source: 'athlete' | 'club' | 'auto';
+  /** Where the level comes from: the coach's fixed level, body data, or the plan itself. */
+  levelSource: 'fixed' | 'recommended' | 'plan';
+  energy: AthleteEnergy;
+}
+
+// ---------------------------------------------------------------------------
+// Body data and energy need
+// ---------------------------------------------------------------------------
+
+export interface BodyMetricDoc {
+  id: string;
+  athlete_id: string;
+  user_id: string;
+  club_id: string;
+  date: string;
+  height_cm: number;
+  weight_kg: number;
+  recorded_by: 'athlete' | 'coach';
+  recorder_id: string;
+  created_at: Date;
+}
+
+export interface NutritionProfileDoc {
+  id: string;
+  athlete_id: string;
+  user_id: string;
+  club_id: string;
+  goal: Goal;
+  level_mode: 'auto' | 'fixed';
+  fixed_level: number | null;
+  updated_by: string;
   updated_at: Date;
+}
+
+export type BodyMetric = Pick<BodyMetricDoc, 'date' | 'height_cm' | 'weight_kg' | 'recorded_by'>;
+
+export interface AthleteEnergy {
+  age: number | null;
+  sex: Sex | null;
+  /** Newest first. */
+  metrics: BodyMetric[];
+  goal: Goal;
+  levelMode: 'auto' | 'fixed';
+  fixedLevel: number | null;
+  hoursPerWeek: number;
+  /** Null until height, weight and age are known. */
+  recommendation: EnergyBreakdown | null;
+}
+
+/** Body data, energy settings and the recommended level for one athlete. */
+export async function getAthleteEnergy(
+  athlete: AthleteRef,
+  metricsLimit = 12
+): Promise<AthleteEnergy> {
+  const db = await getDb();
+  const today = dayKey();
+  const [metrics, profile, sessions] = await Promise.all([
+    db
+      .collection<BodyMetricDoc>(COLLECTIONS.bodyMetrics)
+      .find(
+        { athlete_id: athlete.id },
+        { projection: { _id: 0, date: 1, height_cm: 1, weight_kg: 1, recorded_by: 1 } }
+      )
+      .sort({ date: -1 })
+      .limit(metricsLimit)
+      .toArray(),
+    db
+      .collection<NutritionProfileDoc>(COLLECTIONS.profiles)
+      .findOne({ athlete_id: athlete.id }, NO_ID),
+    // Training load: the club's sessions over the last four weeks.
+    db
+      .collection<PlanSession & { session_date: string }>('training_sessions')
+      .find(
+        {
+          club_id: athlete.club_id,
+          session_date: { $gte: addDays(today, -27), $lte: today },
+          status: { $ne: 'cancelled' },
+        },
+        { projection: { _id: 0, start_time: 1, end_time: 1 } }
+      )
+      .toArray(),
+  ]);
+
+  const age = ageOn(athlete.date_of_birth, today);
+  const sex = toSex(athlete.gender);
+  const goal = profile?.goal ?? 'maintain';
+  const hoursPerWeek = weeklyTrainingHours(sessions);
+  const latest = metrics[0];
+  return {
+    age,
+    sex,
+    metrics,
+    goal,
+    levelMode: profile?.level_mode ?? 'auto',
+    fixedLevel: profile?.level_mode === 'fixed' ? (profile.fixed_level ?? null) : null,
+    hoursPerWeek,
+    recommendation:
+      latest && age !== null
+        ? dailyEnergy({
+            age,
+            sex,
+            heightCm: latest.height_cm,
+            weightKg: latest.weight_kg,
+            hoursPerWeek,
+            goal,
+          })
+        : null,
+  };
 }
 
 const toConfig = (doc: MealPlanDoc): MealPlanConfig => ({
@@ -439,24 +562,45 @@ const toConfig = (doc: MealPlanDoc): MealPlanConfig => ({
   meals: doc.meals ?? {},
 });
 
-/** The athlete's own plan, else their club's, else null. */
+/**
+ * The meal plan an athlete follows. Style and meals: own plan, else team plan, else
+ * automatic balanced meals. Level: coach's fixed level, else the level calculated from
+ * body data, else the plan's level. Null when there is neither a plan nor body data.
+ */
 export async function getEffectivePlan(athlete: AthleteRef): Promise<EffectivePlan | null> {
   const db = await getDb();
-  const docs = await db
-    .collection<MealPlanDoc>(COLLECTIONS.mealPlans)
-    .find(
-      {
-        club_id: athlete.club_id,
-        $or: [
-          { scope: 'athlete', athlete_id: athlete.id },
-          { scope: 'club', athlete_id: null },
-        ],
-      },
-      NO_ID
-    )
-    .toArray();
+  const [docs, energy] = await Promise.all([
+    db
+      .collection<MealPlanDoc>(COLLECTIONS.mealPlans)
+      .find(
+        {
+          club_id: athlete.club_id,
+          $or: [
+            { scope: 'athlete', athlete_id: athlete.id },
+            { scope: 'club', athlete_id: null },
+          ],
+        },
+        NO_ID
+      )
+      .toArray(),
+    getAthleteEnergy(athlete),
+  ]);
   const doc = docs.find((d) => d.scope === 'athlete') ?? docs.find((d) => d.scope === 'club');
-  return doc ? { config: toConfig(doc), source: doc.scope, updated_at: doc.updated_at } : null;
+  const level = resolveLevel({
+    fixedLevel: energy.fixedLevel,
+    recommended: energy.recommendation?.level ?? null,
+    planLevel: doc?.level_kcal ?? null,
+  });
+  if (!level) return null;
+  const base = doc
+    ? toConfig(doc)
+    : { level_kcal: level.level, style: 'balanced' as const, meals: {} };
+  return {
+    config: { ...base, level_kcal: level.level },
+    source: doc ? doc.scope : 'auto',
+    levelSource: level.source,
+    energy,
+  };
 }
 
 export async function getClubPlan(clubId: string): Promise<MealPlanDoc | null> {

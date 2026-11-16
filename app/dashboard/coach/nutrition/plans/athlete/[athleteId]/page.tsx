@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Reveal } from '@/components/motion/Reveal';
 import { MealPlanEditor } from '@/components/nutrition/MealPlanEditor';
 import {
+  getAthleteEnergy,
   getAthleteForStaff,
   getAthletePlan,
   getClubPlan,
@@ -27,10 +28,25 @@ export default async function AthleteMealPlanPage({
   const athlete = await getAthleteForStaff(athleteId, clubIds);
   if (!athlete) notFound();
 
-  const [own, team] = await Promise.all([getAthletePlan(athlete.id), getClubPlan(athlete.club_id)]);
+  const [own, team, energy] = await Promise.all([
+    getAthletePlan(athlete.id),
+    getClubPlan(athlete.club_id),
+    getAthleteEnergy(athlete),
+  ]);
   const name = `${athlete.first_name ?? ''} ${athlete.last_name ?? ''}`.trim() || 'Athlete';
   const adult = isAdult(athlete.date_of_birth, dayKey());
   const start = own ?? team;
+  // A fixed level or one calculated from body data is set on the athlete page, not here.
+  const bodyHref = `/dashboard/coach/nutrition/${athlete.id}#body-energy-title`;
+  const levelLock = energy.fixedLevel
+    ? { level: energy.fixedLevel, reason: 'Fixed by a coach.', href: bodyHref }
+    : energy.recommendation
+      ? {
+          level: energy.recommendation.level,
+          reason: `Calculated from ${name.split(' ')[0]}’s body data and ${energy.recommendation.hoursPerWeek} h of training a week.`,
+          href: bodyHref,
+        }
+      : null;
 
   return (
     <Reveal className="mx-auto max-w-5xl space-y-6 sm:space-y-8">
@@ -66,6 +82,7 @@ export default async function AthleteMealPlanPage({
         }
         exists={own !== null}
         backHref={`/dashboard/coach/nutrition/${athlete.id}`}
+        levelLock={levelLock}
       />
     </Reveal>
   );

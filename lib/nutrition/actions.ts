@@ -19,13 +19,15 @@ import {
   hydrationGoal,
   type CheckInDoc,
   type HydrationDoc,
+  type BodyMetricDoc,
   type MealDoc,
   type PlanCheckDoc,
 } from './data';
 import { dayKey, weekStart } from './dates';
+import { HEIGHT_RANGE, validMetrics, WEIGHT_RANGE } from './energy';
 import { NUTRITION_COLLECTIONS as COLLECTIONS } from './indexes';
 import { buildFuelPlan } from './plan';
-import { portionsForSteps } from './portions';
+import { isAdult, portionsForSteps } from './portions';
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -249,6 +251,47 @@ export async function uncheckPlanStep(stepId: string): Promise<Result> {
       .collection<MealDoc>(COLLECTIONS.meals)
       .deleteOne({ id: check.meal_id, athlete_id: athlete.id });
   }
+  refresh();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Body data (adults record their own; a coach records it for under-18s)
+// ---------------------------------------------------------------------------
+
+export async function saveMyBodyMetrics(input: {
+  heightCm: unknown;
+  weightKg: unknown;
+}): Promise<Result> {
+  const athlete = await getCurrentAthlete();
+  if (!athlete) return NOT_ATHLETE;
+  const date = dayKey();
+  // Weighing is sensitive for teenagers: their coach records it instead.
+  if (!isAdult(athlete.date_of_birth, date)) {
+    return { ok: false, error: 'Your coach records your height and weight at the club.' };
+  }
+  const metrics = validMetrics(input?.heightCm, input?.weightKg);
+  if (!metrics) {
+    return {
+      ok: false,
+      error: `Enter a height between ${HEIGHT_RANGE.min} and ${HEIGHT_RANGE.max} cm and a weight between ${WEIGHT_RANGE.min} and ${WEIGHT_RANGE.max} kg.`,
+    };
+  }
+  const db = await getDb();
+  await db.collection<BodyMetricDoc>(COLLECTIONS.bodyMetrics).updateOne(
+    { athlete_id: athlete.id, date },
+    {
+      $set: {
+        height_cm: metrics.heightCm,
+        weight_kg: metrics.weightKg,
+        recorded_by: 'athlete',
+        recorder_id: athlete.user_id,
+        created_at: new Date(),
+      },
+      $setOnInsert: { id: randomUUID(), user_id: athlete.user_id, club_id: athlete.club_id },
+    },
+    { upsert: true }
+  );
   refresh();
   return { ok: true };
 }
