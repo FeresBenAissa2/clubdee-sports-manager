@@ -292,7 +292,7 @@ export async function reviewApplication(
     const currentStatus = (application as any).status as string;
     if (currentStatus !== 'pending' && currentStatus !== 'info_requested') {
       const statusMap: Record<string, string> = {
-        approved: 'Approved',
+        approved: 'already approved',
         rejected: 'already rejected',
       };
       return { 

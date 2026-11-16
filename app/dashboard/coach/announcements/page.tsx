@@ -45,11 +45,36 @@ export default async function CoachAnnouncementsPage() {
     redirect('/dashboard/coach');
   }
 
+  // A coach has one row per club; announcements belong to one of those rows.
+  const { data: coachRows } = (await db
+    .from('coaches')
+    .select('id, club_id, clubs (id, name)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })) as {
+    data: { id: string; club_id: string; clubs?: { id: string; name: string } | null }[] | null;
+  };
+  const myCoachRows = coachRows ?? [];
+  const clubs = myCoachRows.map((row) => ({ id: row.club_id, name: row.clubs?.name ?? 'Club' }));
+  const clubOfCoachRow = new Map(myCoachRows.map((row) => [row.id, row.club_id]));
+  const clubName = new Map(clubs.map((club) => [club.id, club.name]));
+
+  // Athletes per club, to show "read by X of Y" against the right club
+  const athletesPerClub = new Map<string, number>();
+  await Promise.all(
+    clubs.map(async (club) => {
+      const { count } = await db
+        .from('athletes')
+        .select('*', { count: 'exact', head: true })
+        .eq('club_id', club.id);
+      athletesPerClub.set(club.id, count || 0);
+    })
+  );
+
   // Get announcements
   const { data: announcements } = await db
     .from('announcements')
     .select('*')
-    .eq('coach_id', coach.id)
+    .in('coach_id', myCoachRows.map((row) => row.id))
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -60,10 +85,13 @@ export default async function CoachAnnouncementsPage() {
         .from('announcement_reads')
         .select('*', { count: 'exact', head: true })
         .eq('announcement_id', announcement.id);
-      
+
+      const clubId = clubOfCoachRow.get((announcement as Announcement & { coach_id?: string }).coach_id ?? '') ?? '';
       return {
         ...announcement,
         read_count: count || 0,
+        total_athletes: athletesPerClub.get(clubId) ?? 0,
+        club_name: clubs.length > 1 ? clubName.get(clubId) : undefined,
       };
     })
   );
@@ -72,7 +100,7 @@ export default async function CoachAnnouncementsPage() {
   const { count: totalAthletes } = await db
     .from('athletes')
     .select('*', { count: 'exact', head: true })
-    .eq('club_id', coach.club_id || '');
+    .in('club_id', clubs.map((club) => club.id));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -94,7 +122,7 @@ export default async function CoachAnnouncementsPage() {
                 </p>
               </div>
             </div>
-            <CreateAnnouncementDialog />
+            <CreateAnnouncementDialog clubs={clubs} />
           </div>
         </div>
       </div>
@@ -123,8 +151,8 @@ export default async function CoachAnnouncementsPage() {
 
       {/* Content */}
       <div className="px-4 py-6">
-        <AnnouncementList 
-          announcements={announcementsWithReads || []} 
+        <AnnouncementList
+          announcements={announcementsWithReads || []}
           totalAthletes={totalAthletes || 0}
         />
       </div>

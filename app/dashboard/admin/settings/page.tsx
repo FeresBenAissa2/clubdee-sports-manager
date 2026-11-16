@@ -221,7 +221,7 @@ export default function AdminSettingsPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-blue-800">CoachApprove:</span>
+                <span className="text-blue-800">Coach approval:</span>
                 <span className="font-medium text-blue-900">
                   {requireCoachApproval ? 'Approval required' : 'No approval required'}
                 </span>

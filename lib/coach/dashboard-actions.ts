@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/db/server';
+import { localDateKey } from '@/lib/utils/local-date';
 
 export interface DashboardStats {
   totalAthletes: number;
@@ -56,7 +57,7 @@ export async function getCoachDashboardStats() {
   }
 
   const clubId = profile.club_id;
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // Get athlete IDs first for leave requests query
   const { data: athleteIds } = await db
@@ -190,7 +191,7 @@ export async function getUpcomingSessions(limit: number = 5) {
     return { error: 'Coach profile not found' };
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: sessions, error } = await (db as any)
@@ -342,7 +343,7 @@ export async function getPendingTasks() {
     return { error: 'Coach profile not found' };
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // Get athlete IDs first
   const { data: athleteIds } = await db

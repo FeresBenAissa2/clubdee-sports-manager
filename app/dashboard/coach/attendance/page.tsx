@@ -4,6 +4,8 @@ import { ChevronLeft, Calendar, Clock, MapPin, ClipboardCheck } from 'lucide-rea
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getCoachAccess } from '@/lib/coach/session-access';
+import { dayKey } from '@/lib/nutrition/dates';
 
 export default async function CoachAttendancePage() {
   const db = await createClient();
@@ -32,15 +34,16 @@ export default async function CoachAttendancePage() {
 
   const coachData = coach as any;
 
-  // Get today's date
-  const today = new Date().toISOString().split('T')[0];
+  // Today in club time (a UTC date would be yesterday just after midnight).
+  const today = dayKey();
+  const access = await getCoachAccess(db, user.id);
 
   // Fetch today's sessions
   // @ts-ignore - type inference issue
   const { data: sessions, error: sessionsError } = await db
     .from('training_sessions')
     .select('*')
-    .eq('coach_id', coachData.id)
+    .in('club_id', access?.clubIds ?? [coachData.club_id])
     .eq('session_date', today)
     .order('start_time', { ascending: true });
 

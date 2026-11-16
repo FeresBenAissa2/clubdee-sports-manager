@@ -52,6 +52,10 @@ export async function generateAttendanceReport(
       return { error: 'Coach profile not found' };
     }
 
+    // A coach can be linked to several clubs; reports cover all of them.
+    const { data: coachRows } = await db.from('coaches').select('club_id').eq('user_id', user.id);
+    const clubIds = [...new Set(((coachRows ?? []) as { club_id: string }[]).map((row) => row.club_id))];
+
     // Validate date range
     const startDate = new Date(params.startDate);
     const endDate = new Date(params.endDate);
@@ -63,9 +67,8 @@ export async function generateAttendanceReport(
     // Get all sessions in date range for coach's club
     let sessionsQuery = db
       .from('training_sessions')
-      .select('id')
-      // @ts-ignore
-      .eq('club_id', coach.club_id)
+      .select('id, club_id')
+      .in('club_id', clubIds)
       .gte('session_date', params.startDate)
       .lte('session_date', params.endDate);
 
@@ -85,9 +88,8 @@ export async function generateAttendanceReport(
     // Get athletes query
     let athletesQuery = db
       .from('athletes')
-      .select('id, first_name, last_name, nickname')
-      // @ts-ignore
-      .eq('club_id', coach.club_id)
+      .select('id, first_name, last_name, nickname, club_id')
+      .in('club_id', clubIds)
       .order('first_name');
 
     // Filter by specific athlete if requested
@@ -127,10 +129,14 @@ export async function generateAttendanceReport(
       attendanceByAthlete.get(athleteId)!.push(record);
     });
 
-    // Calculate statistics for each athlete
-    const totalSessions = sessionIds.length;
+    // Calculate statistics for each athlete, against the sessions of the athlete's own club
+    const sessionsPerClub = new Map<string, number>();
+    ((sessions || []) as { club_id: string }[]).forEach((session) => {
+      sessionsPerClub.set(session.club_id, (sessionsPerClub.get(session.club_id) ?? 0) + 1);
+    });
     const report: AthleteAttendanceReport[] = athletes.map((athlete: any) => {
       const records = attendanceByAthlete.get(athlete.id) || [];
+      const totalSessions = sessionsPerClub.get(athlete.club_id) ?? 0;
       
       const attended = records.filter((r: any) => r.status === 'present').length;
       const absent = records.filter((r: any) => r.status === 'absent').length;
@@ -259,6 +265,16 @@ export async function getPerformanceDataForExport(params: {
       return { error: 'Coach profile not found' };
     }
 
+    // A coach can be linked to several clubs; reports cover all of them.
+    const { data: coachRows } = await db.from('coaches').select('club_id').eq('user_id', user.id);
+    const clubIds = [...new Set(((coachRows ?? []) as { club_id: string }[]).map((row) => row.club_id))];
+
+    const { data: clubAthletes } = await db.from('athletes').select('id').in('club_id', clubIds);
+    const athleteIds = ((clubAthletes ?? []) as { id: string }[]).map((row) => row.id);
+    if (athleteIds.length === 0) {
+      return { data: [] };
+    }
+
     // Build query for performance records
     let query = db
       .from('performance_records')
@@ -272,8 +288,7 @@ export async function getPerformanceDataForExport(params: {
           club_id
         )
       `)
-      // @ts-ignore
-      .eq('athletes.club_id', coach.club_id)
+      .in('athlete_id', athleteIds)
       .gte('test_date', params.startDate)
       .lte('test_date', params.endDate)
       .order('test_date', { ascending: false });

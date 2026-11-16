@@ -11,6 +11,9 @@ export function TournamentList() {
 
   useEffect(() => {
     loadTournaments();
+    // The create dialog lives outside this list; it announces new tournaments.
+    window.addEventListener('tournaments:changed', loadTournaments);
+    return () => window.removeEventListener('tournaments:changed', loadTournaments);
   }, []);
 
   async function loadTournaments() {
@@ -28,7 +31,7 @@ export function TournamentList() {
 
   const upcoming = tournaments.filter(t => t.status === 'upcoming');
   const ongoing = tournaments.filter(t => t.status === 'ongoing');
-  const completed = tournaments.filter(t => t.status === 'completed');
+  const completed = tournaments.filter(t => t.status === 'completed' || t.status === 'cancelled');
 
   return (
     <Tabs defaultValue="upcoming" className="w-full">

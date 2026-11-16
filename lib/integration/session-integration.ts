@@ -9,6 +9,7 @@ import {
   IntegrationError,
   IntegrationErrorType,
 } from '@/types/integration';
+import { localDateKey } from '@/lib/utils/local-date';
 
 /**
  * Session Integration Module
@@ -223,8 +224,8 @@ export async function getTodaySessions(clubId: string): Promise<TrainingSession[
       .from('training_sessions')
       .select('*')
       .eq('club_id', clubId)
-      .gte('session_date', today.toISOString())
-      .lt('session_date', tomorrow.toISOString())
+      .gte('session_date', localDateKey(today))
+      .lt('session_date', localDateKey(tomorrow))
       .order('start_time', { ascending: true });
 
     if (error) {
@@ -284,8 +285,8 @@ export async function getTomorrowSessions(clubId: string): Promise<TrainingSessi
       .from('training_sessions')
       .select('*')
       .eq('club_id', clubId)
-      .gte('session_date', tomorrow.toISOString())
-      .lt('session_date', dayAfterTomorrow.toISOString())
+      .gte('session_date', localDateKey(tomorrow))
+      .lt('session_date', localDateKey(dayAfterTomorrow))
       .order('start_time', { ascending: true });
 
     if (error) {
@@ -342,8 +343,8 @@ export async function getUpcomingSessions(
       .from('training_sessions')
       .select('*')
       .eq('club_id', clubId)
-      .gte('session_date', today.toISOString())
-      .lt('session_date', endDate.toISOString())
+      .gte('session_date', localDateKey(today))
+      .lt('session_date', localDateKey(endDate))
       .order('session_date', { ascending: true })
       .order('start_time', { ascending: true });
 

@@ -31,6 +31,7 @@ import {
   bannerSecondaryAction,
 } from '@/components/dashboard/DashboardBits';
 import { cn } from '@/lib/utils';
+import { localDateKey } from '@/lib/utils/local-date';
 
 interface AthleteProfile {
   id: string;
@@ -52,6 +53,15 @@ interface AttendanceLog {
     session_name: string;
     session_type: string;
   };
+}
+
+/** An attendance row with the session it belongs to, as read for "Recent sessions". */
+interface RecentAttendanceRow {
+  id: string;
+  status: string;
+  check_in_time?: string | null;
+  created_at: string;
+  training_sessions?: { title?: string | null; session_date?: string | null } | null;
 }
 
 interface AnnouncementRow {
@@ -149,7 +159,7 @@ export default async function AthleteDashboard() {
     .select('*', { count: 'exact', head: true })
     .eq('athlete_id', profile.id)
     .eq('status', 'present')
-    .gte('session_date', startOfMonth.toISOString());
+    .gte('created_at', startOfMonth.toISOString());
 
   const { count: totalPerformance, error: perfError } = await db
     .from('performance_records')
@@ -157,20 +167,31 @@ export default async function AthleteDashboard() {
     .eq('athlete_id', profile.id);
 
   // Get recent attendance (last 5)
-  const { data: recentAttendance, error: recentAttError } = (await db
+  const { data: recentAttendanceRows, error: recentAttError } = (await db
     .from('attendance')
     .select(
       `
       *,
       training_sessions (
-        session_name,
-        session_type
+        title,
+        session_date
       )
     `
     )
     .eq('athlete_id', profile.id)
-    .order('session_date', { ascending: false })
-    .limit(5)) as { data: AttendanceLog[] | null; error: any };
+    .order('created_at', { ascending: false })
+    .limit(5)) as { data: RecentAttendanceRow[] | null; error: unknown };
+
+  const recentAttendance: AttendanceLog[] | null = recentAttendanceRows
+    ? recentAttendanceRows.map((row) => ({
+        ...row,
+        session_date: row.training_sessions?.session_date ?? row.check_in_time ?? row.created_at,
+        training_sessions: {
+          session_name: row.training_sessions?.title ?? 'Training',
+          session_type: '',
+        },
+      }))
+    : null;
 
   // Get recent performance records (last 5)
   const { data: recentPerformance, error: recentPerfError } = (await db
@@ -228,7 +249,7 @@ export default async function AthleteDashboard() {
       .from('training_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('club_id', profile.clubs.id)
-      .gte('session_date', today.toISOString());
+      .gte('session_date', localDateKey(today));
     
     upcomingSessionsCount = count || 0;
   }

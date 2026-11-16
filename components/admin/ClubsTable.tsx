@@ -57,6 +57,7 @@ export function ClubsTable({ clubs }: ClubsTableProps) {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={`Edit ${club.name}`}
                       onClick={() => setEditingClub(club)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -64,6 +65,7 @@ export function ClubsTable({ clubs }: ClubsTableProps) {
                     <Button
                       variant="outline"
                       size="sm"
+                      aria-label={`Delete ${club.name}`}
                       onClick={() => setDeletingClub(club)}
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />

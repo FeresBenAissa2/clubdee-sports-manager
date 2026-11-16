@@ -4,8 +4,16 @@ import { TournamentList } from '@/components/coach/TournamentList';
 import { CreateTournamentDialog } from '@/components/coach/CreateTournamentDialog';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { createClient } from '@/lib/db/server';
+import { getCoachAccess } from '@/lib/coach/session-access';
 
-export default function TournamentsPage() {
+export default async function TournamentsPage() {
+  const db = await createClient();
+  const {
+    data: { user },
+  } = await db.auth.getUser();
+  const access = user ? await getCoachAccess(db, user.id) : null;
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <Link href="/dashboard/coach">
@@ -22,7 +30,7 @@ export default function TournamentsPage() {
             Manage tournaments and select athletes to register
           </p>
         </div>
-        <CreateTournamentDialog />
+        <CreateTournamentDialog clubs={access?.clubs ?? []} />
       </div>
 
       <Suspense fallback={<div>Loading...</div>}>

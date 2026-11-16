@@ -59,6 +59,14 @@
       "routes": [
         "/dashboard/coach/tournaments"
       ]
+    },
+    "nutrition": {
+      "name": "Nutrition",
+      "owner_slot": 7,
+      "routes": [
+        "/dashboard/athlete/nutrition",
+        "/dashboard/coach/nutrition"
+      ]
     }
   }
 }

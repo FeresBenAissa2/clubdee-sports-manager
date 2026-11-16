@@ -15,7 +15,7 @@ export const personalInfoSchema = z.object({
     .transform((val) => sanitizeInput(val)),
   nickname: z.string().optional().transform((val) => (val ? sanitizeInput(val) : val)),
   gender: z
-    .enum(['male', 'female', 'other'])
+    .enum(['male', 'female', 'other'], { error: 'Please select a gender' })
     .refine((val) => ['male', 'female', 'other'].includes(val), {
       message: 'Please select a gender',
     }),

@@ -33,7 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar, Clock, MapPin, Edit, Trash2, AlertTriangle, Users } from 'lucide-react';
 import { updateAnySession, deleteSession } from '@/lib/admin/attendance-actions';
 import { format } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { localDateKey } from '@/lib/utils/local-date';
 
 interface SessionWithDetails {
   id: string;
@@ -142,7 +142,7 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
       cancelled: 'bg-red-100 text-red-800',
     };
     const labels = {
-      scheduled: 'Schedule',
+      scheduled: 'Scheduled',
       ongoing: 'In progress',
       completed: 'Completed',
       cancelled: 'Cancel',
@@ -300,7 +300,7 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="scheduled">Schedule</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="ongoing">In progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancel</SelectItem>
@@ -366,7 +366,7 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          {format(new Date(session.session_date), 'dd MMM yyyy', { locale: th })}
+                          {format(new Date(session.session_date), 'dd MMM yyyy')}
                         </span>
                       </div>
                     </TableCell>
@@ -390,7 +390,14 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
                     </TableCell>
 
                     {/* Status */}
-                    <TableCell className="text-center">{getStatusBadge(session.status)}</TableCell>
+                    <TableCell className="text-center">
+                      {/* A session still marked "scheduled" after its date has simply taken place. */}
+                      {getStatusBadge(
+                        session.status === 'scheduled' && session.session_date < localDateKey()
+                          ? 'completed'
+                          : session.status
+                      )}
+                    </TableCell>
 
                     {/* Attendance Count */}
                     <TableCell className="text-center">
@@ -472,7 +479,7 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit training session</DialogTitle>
-            <DialogDescription>EditInformationtraining session</DialogDescription>
+            <DialogDescription>Change the details of this training session</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEditSubmit}>
@@ -585,7 +592,7 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="scheduled">Schedule</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="ongoing">In progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancel</SelectItem>
@@ -630,8 +637,7 @@ export function SessionsTable({ sessions, clubs }: SessionsTableProps) {
               <strong>{sessionToDelete?.title}</strong>?
               <br />
               <br />
-              This will delete all related attendance records and leave requests
-              and unable toPresentBackhoeBackYes
+              This also deletes its attendance records and leave requests, and cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

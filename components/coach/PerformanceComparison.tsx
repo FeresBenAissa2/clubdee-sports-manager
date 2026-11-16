@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { betterScore } from '@/lib/utils/performance';
 import { BarChart3, TrendingUp, Award, Users } from 'lucide-react';
 import {
   Select,
@@ -81,7 +82,7 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
 
     records.forEach((record) => {
       const key = `${record.test_type}-${record.test_name}`;
-      
+
       if (!statsMap.has(key)) {
         statsMap.set(key, {
           testType: record.test_type,
@@ -114,8 +115,8 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
       }
 
       athleteStats.testCount++;
-      athleteStats.bestScore = Math.max(athleteStats.bestScore, record.score);
-      
+      athleteStats.bestScore = betterScore(athleteStats.bestScore, record.score, record.unit);
+
       // Update latest if this record is more recent
       if (record.test_date >= athleteStats.latestDate) {
         athleteStats.latestScore = record.score;
@@ -159,7 +160,7 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
         let comparison = 0;
         switch (sortBy) {
           case 'name':
-            comparison = a.athleteName.localeCompare(b.athleteName, 'th');
+            comparison = a.athleteName.localeCompare(b.athleteName);
             break;
           case 'average':
             comparison = a.averageScore - b.averageScore;
@@ -181,10 +182,10 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
       <div className="rounded-lg bg-white p-12 text-center shadow">
         <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="mt-4 text-lg font-medium text-gray-900">
-          No data yetAdequate
+          Not enough data yet
         </h3>
         <p className="mt-2 text-sm text-gray-600">
-          Must be presentTest resultsAt least 1 itemsToShowingComparing
+          Record at least one test result to compare athletes
         </p>
       </div>
     );
@@ -230,7 +231,7 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
               <SelectContent>
                 <SelectItem value="name">Name</SelectItem>
                 <SelectItem value="average">Average score</SelectItem>
-                <SelectItem value="best">Highest score</SelectItem>
+                <SelectItem value="best">Best score</SelectItem>
                 <SelectItem value="latest">Latest score</SelectItem>
               </SelectContent>
             </Select>
@@ -286,7 +287,7 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
                     <TableHead>Athletes</TableHead>
                     <TableHead className="text-center">Attempts</TableHead>
                     <TableHead className="text-right">Average score</TableHead>
-                    <TableHead className="text-right">Highest score</TableHead>
+                    <TableHead className="text-right">Best score</TableHead>
                     <TableHead className="text-right">Latest score</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -336,7 +337,7 @@ export function PerformanceComparison({ records }: PerformanceComparisonProps) {
             Not found
           </h3>
           <p className="mt-2 text-sm text-gray-600">
-            None.Test resultsforTypeNo.Select
+            No test results for the selected test type
           </p>
         </div>
       )}

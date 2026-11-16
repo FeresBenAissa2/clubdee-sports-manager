@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { createPerformanceRecord } from '@/lib/coach/performance-actions';
 import { Loader2 } from 'lucide-react';
+import { localDateKey } from '@/lib/utils/local-date';
 
 interface Athlete {
   id: string;
@@ -64,7 +65,7 @@ export function PerformanceRecordForm({
     testName: '',
     score: '',
     unit: '',
-    testDate: new Date().toISOString().split('T')[0],
+    testDate: localDateKey(),
     notes: '',
   });
 
@@ -119,7 +120,7 @@ export function PerformanceRecordForm({
           testName: '',
           score: '',
           unit: '',
-          testDate: new Date().toISOString().split('T')[0],
+          testDate: localDateKey(),
           notes: '',
         });
         onSuccess?.();
@@ -250,7 +251,7 @@ export function PerformanceRecordForm({
           onChange={(e) =>
             setFormData({ ...formData, testDate: e.target.value })
           }
-          max={new Date().toISOString().split('T')[0]}
+          max={localDateKey()}
           required
         />
       </div>

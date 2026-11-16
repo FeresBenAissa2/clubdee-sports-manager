@@ -9,17 +9,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { createSession } from '@/lib/coach/session-actions';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { localDateKey } from '@/lib/utils/local-date';
 
 interface SessionFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
+  /** The coach's clubs. With more than one, the coach picks which club the session is for. */
+  clubs?: { id: string; name: string }[];
 }
 
-export function SessionForm({ onSuccess, onCancel }: SessionFormProps) {
+export function SessionForm({ onSuccess, onCancel, clubs = [] }: SessionFormProps) {
   const router = useRouter();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [clubId, setClubId] = useState(clubs[0]?.id ?? '');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -98,6 +102,7 @@ export function SessionForm({ onSuccess, onCancel }: SessionFormProps) {
       start_time: formData.start_time,
       end_time: formData.end_time,
       location: formData.location,
+      club_id: clubId || undefined,
     });
 
     if (result.success) {
@@ -146,6 +151,30 @@ export function SessionForm({ onSuccess, onCancel }: SessionFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Club (only when the coach has several) */}
+      {clubs.length > 1 && (
+        <div className="space-y-2">
+          <Label htmlFor="club_id">
+            Club <span className="text-red-500">*</span>
+          </Label>
+          <select
+            id="club_id"
+            value={clubId}
+            onChange={(e) => setClubId(e.target.value)}
+            disabled={loading}
+            required
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {clubs.map((club) => (
+              <option key={club.id} value={club.id}>
+                {club.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500">Only athletes of this club will see the session.</p>
+        </div>
+      )}
+
       {/* Title */}
       <div className="space-y-2">
         <Label htmlFor="title">
@@ -199,7 +228,7 @@ export function SessionForm({ onSuccess, onCancel }: SessionFormProps) {
           }}
           required
           disabled={loading}
-          min={new Date().toISOString().split('T')[0]}
+          min={localDateKey()}
           className={fieldErrors.session_date ? 'border-red-300 focus:border-red-500' : ''}
         />
         {fieldErrors.session_date && (

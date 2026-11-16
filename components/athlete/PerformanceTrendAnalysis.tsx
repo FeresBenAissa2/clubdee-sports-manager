@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useState } from 'react';
+import { bestScore, improvementOf, lowerIsBetter } from '@/lib/utils/performance';
 
 interface PerformanceRecord {
   id: string;
@@ -52,7 +53,7 @@ export function PerformanceTrendAnalysis({
 
     records.forEach((record) => {
       const key = `${record.test_type}-${record.test_name}`;
-      
+
       if (!trendMap.has(key)) {
         trendMap.set(key, {
           testType: record.test_type,
@@ -77,33 +78,35 @@ export function PerformanceTrendAnalysis({
     const trendsArray: TrendData[] = [];
     trendMap.forEach((trend) => {
       // Sort records by date (oldest first)
-      trend.records.sort((a, b) => 
+      trend.records.sort((a, b) =>
         new Date(a.test_date).getTime() - new Date(b.test_date).getTime()
       );
 
       trend.count = trend.records.length;
-      
-      // Calculate best score (assuming higher is better for most tests)
-      trend.bestScore = Math.max(...trend.records.map(r => r.score));
-      
+
+      // Best score: the highest, except for timed tests where the lowest time wins
+      trend.bestScore = bestScore(trend.records.map(r => r.score), trend.unit);
+
       // Calculate average
-      trend.averageScore = 
+      trend.averageScore =
         trend.records.reduce((sum, r) => sum + r.score, 0) / trend.count;
-      
+
       // Latest score
       trend.latestScore = trend.records[trend.records.length - 1].score;
-      
+
       // Calculate improvement (latest vs first)
       if (trend.count > 1) {
         const firstScore = trend.records[0].score;
-        trend.improvement = trend.latestScore - firstScore;
-        trend.improvementPercentage = 
-          firstScore !== 0 ? (trend.improvement / firstScore) * 100 : 0;
-        
-        // Determine trend direction
+        // `improvement` is the raw change; whether that is good depends on the unit
+        // (a lower time is an improvement).
+        const progress = improvementOf(firstScore, trend.latestScore, trend.unit);
+        trend.improvement = progress.change;
+        trend.improvementPercentage = progress.percentage;
+
+        // Determine trend direction ("up" always means the athlete got better)
         if (Math.abs(trend.improvementPercentage) < 1) {
           trend.trend = 'stable';
-        } else if (trend.improvement > 0) {
+        } else if (progress.improved) {
           trend.trend = 'up';
         } else {
           trend.trend = 'down';
@@ -126,7 +129,7 @@ export function PerformanceTrendAnalysis({
 
   // Sort by improvement percentage (descending)
   const sortedTrends = useMemo(() => {
-    return [...filteredTrends].sort((a, b) => 
+    return [...filteredTrends].sort((a, b) =>
       b.improvementPercentage - a.improvementPercentage
     );
   }, [filteredTrends]);
@@ -265,8 +268,9 @@ export function PerformanceTrendAnalysis({
                       trend.trend === 'down' ? 'text-red-700' :
                       'text-gray-700'
                     }`}>
-                      ({trend.improvementPercentage > 0 ? '+' : ''}
-                      {trend.improvementPercentage.toFixed(1)}%)
+                      {lowerIsBetter(trend.unit)
+                        ? `(${Math.abs(trend.improvementPercentage).toFixed(1)}% ${trend.improvementPercentage >= 0 ? 'faster' : 'slower'})`
+                        : `(${trend.improvementPercentage > 0 ? '+' : ''}${trend.improvementPercentage.toFixed(1)}%)`}
                     </p>
                   </div>
                 </div>

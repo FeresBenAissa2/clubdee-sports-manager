@@ -23,21 +23,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify admin role - check both profiles and user_roles tables
-    const { data: profile } = await db
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    // Also check user_roles table
+    // Verify admin role. Only user_roles decides: profiles.role is a display copy
+    // and must never grant access on its own.
     const { data: userRole } = await db
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    const isAdmin = (profile as any)?.role === 'admin' || (userRole as any)?.role === 'admin';
+    const isAdmin = (userRole as any)?.role === 'admin';
 
     if (!isAdmin) {
       return NextResponse.json(
@@ -63,6 +57,27 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid role. Must be admin, coach, or athlete' },
         { status: 400 }
       );
+    }
+
+    // Coaches and athletes always belong to a club: use the chosen one, else the first club.
+    let clubId: string | null = null;
+    if (role === 'coach' || role === 'athlete') {
+      if (club_id) {
+        const { data: club } = await db.from('clubs').select('id').eq('id', club_id).maybeSingle();
+        if (!club) {
+          return NextResponse.json({ error: 'Selected club does not exist' }, { status: 400 });
+        }
+        clubId = club_id;
+      } else {
+        const { data: clubs } = await db.from('clubs').select('id').order('name').limit(1);
+        clubId = clubs && clubs.length > 0 ? (clubs[0] as any).id : null;
+      }
+      if (!clubId) {
+        return NextResponse.json(
+          { error: 'Create a club first: coaches and athletes must belong to a club' },
+          { status: 400 }
+        );
+      }
     }
 
     // Create user using Admin API (bypasses rate limiting)
@@ -91,18 +106,6 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (newUser.user as any).id;
-
-    // Get club ID (use provided club_id or first available club)
-    let clubId = club_id;
-    
-    if (!clubId && (role === 'coach' || role === 'athlete')) {
-      const { data: clubs } = await db
-        .from('clubs')
-        .select('id')
-        .limit(1);
-      
-      clubId = clubs && clubs.length > 0 ? (clubs[0] as any).id : null;
-    }
 
     // Create profile
     const { error: profileError } = await db
@@ -133,11 +136,12 @@ export async function POST(request: NextRequest) {
       console.error('Error creating user_roles:', roleError);
     }
 
+    const nameParts = String(full_name).trim().split(/\s+/);
+    const firstName = nameParts[0] || full_name;
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     // Create athlete record if role is athlete and club exists
     if (role === 'athlete' && clubId) {
-      const nameParts = full_name.split(' ');
-      const firstName = nameParts[0] || full_name;
-      const lastName = nameParts.slice(1).join(' ') || '';
 
       const { error: athleteError } = await db
         .from('athletes')
@@ -157,8 +161,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Note: coaches table doesn't exist in current schema
-    // Coach users are identified by their role in profiles and user_roles tables
+    // Coach pages read the coach's clubs from the coaches table, so a coach
+    // without a row there cannot use the dashboard at all.
+    if (role === 'coach' && clubId) {
+      const { error: coachError } = await db
+        .from('coaches')
+        .insert({
+          user_id: userId,
+          club_id: clubId,
+          email,
+          first_name: firstName,
+          last_name: lastName,
+        } as any);
+
+      if (coachError) {
+        console.error('Error creating coach:', coachError);
+        return NextResponse.json(
+          { error: 'Account created, but the coach profile could not be saved: ' + coachError.message },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,

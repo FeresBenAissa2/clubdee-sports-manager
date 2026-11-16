@@ -67,7 +67,7 @@ export function ClubStatsTable({ clubStats }: ClubStatsTableProps) {
       <CardHeader>
         <CardTitle>Stats by club</CardTitle>
         <CardDescription>
-          Compare each club's training attendance (Sort byAttendance rate)
+          Compare each club's training attendance (sorted by attendance rate)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -163,13 +163,20 @@ export function ClubStatsTable({ clubStats }: ClubStatsTableProps) {
 
                   {/* Performance Badge */}
                   <TableCell className="text-center">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getPerformanceBadge(
-                        club.attendanceRate
-                      )}`}
-                    >
-                      {getPerformanceLabel(club.attendanceRate)}
-                    </span>
+                    {club.totalAttendanceRecords > 0 ? (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getPerformanceBadge(
+                          club.attendanceRate
+                        )}`}
+                      >
+                        {getPerformanceLabel(club.attendanceRate)}
+                      </span>
+                    ) : (
+                      // No attendance recorded yet: there is nothing to rate.
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                        No data yet
+                      </span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -186,11 +193,13 @@ export function ClubStatsTable({ clubStats }: ClubStatsTableProps) {
           <div className="rounded-lg border p-4">
             <p className="text-sm font-medium text-muted-foreground">System-wide average</p>
             <p className="text-2xl font-bold">
-              {clubStats.length > 0
-                ? (
-                    clubStats.reduce((sum, club) => sum + club.attendanceRate, 0) / clubStats.length
-                  ).toFixed(1)
-                : 0}
+              {(() => {
+                // Average only the clubs that have recorded attendance.
+                const rated = clubStats.filter((club) => club.totalAttendanceRecords > 0);
+                return rated.length > 0
+                  ? (rated.reduce((sum, club) => sum + club.attendanceRate, 0) / rated.length).toFixed(1)
+                  : '0';
+              })()}
               %
             </p>
           </div>

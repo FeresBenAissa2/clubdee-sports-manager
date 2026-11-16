@@ -11,7 +11,7 @@
  * - Create profile and related records automatically
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,22 @@ export default function CreateUserPage() {
     full_name: '',
     role: 'athlete',
   });
+  const [clubs, setClubs] = useState<{ id: string; name: string; sport_type: string }[]>([]);
+
+  // Coaches and athletes must belong to a club; let the admin choose which one.
+  useEffect(() => {
+    fetch('/api/admin/clubs')
+      .then((response) => (response.ok ? response.json() : { clubs: [] }))
+      .then((result) => {
+        const list = result.clubs ?? [];
+        setClubs(list);
+        setFormData((current) => (current.club_id || list.length === 0 ? current : { ...current, club_id: list[0].id }));
+      })
+      .catch(() => setClubs([]));
+  }, []);
+
+  const needsClub = formData.role !== 'admin';
+
   const [createdUser, setCreatedUser] = useState<{
     email: string;
     password: string;
@@ -95,7 +111,7 @@ export default function CreateUserPage() {
           password: formData.password,
           full_name: formData.full_name,
           role: formData.role,
-          club_id: formData.club_id,
+          club_id: needsClub ? formData.club_id : undefined,
         }),
       });
 
@@ -123,6 +139,7 @@ export default function CreateUserPage() {
         password: generatePassword(),
         full_name: '',
         role: 'athlete',
+        club_id: clubs[0]?.id,
       });
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -253,9 +270,9 @@ export default function CreateUserPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="athlete">Athlete (Athletes)</SelectItem>
-                  <SelectItem value="coach">Coach (Coach)</SelectItem>
-                  <SelectItem value="admin">Admin (administrator)</SelectItem>
+                  <SelectItem value="athlete">Athlete</SelectItem>
+                  <SelectItem value="coach">Coach</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
@@ -264,6 +281,34 @@ export default function CreateUserPage() {
                 {formData.role === 'admin' && '• Admins: have full access to manage the entire system'}
               </p>
             </div>
+
+            {/* Club */}
+            {needsClub && (
+              <div className="space-y-2">
+                <Label htmlFor="club_id">
+                  Club <span className="text-red-500">*</span>
+                </Label>
+                <select
+                  id="club_id"
+                  value={formData.club_id ?? ''}
+                  onChange={(e) => setFormData({ ...formData, club_id: e.target.value })}
+                  required
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {clubs.length === 0 && <option value="">No club yet — create one first</option>}
+                  {clubs.map((club) => (
+                    <option key={club.id} value={club.id}>
+                      {club.name} ({club.sport_type})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500">
+                  {formData.role === 'coach'
+                    ? 'The coach will manage this club. More clubs can be added later.'
+                    : 'The athlete joins this club as an active member.'}
+                </p>
+              </div>
+            )}
 
             {/* Password */}
             <div className="space-y-2">
@@ -302,7 +347,7 @@ export default function CreateUserPage() {
                   <li>The account is created immediately and is not rate limited</li>
                   <li>Related profile and records are created automatically</li>
                   <li>The user can log in and change their password immediately</li>
-                  <li>Coaches/athletes are assigned to the first club in the system</li>
+                  <li>Coaches and athletes are added to the club you select</li>
                 </ul>
               </AlertDescription>
             </Alert>
@@ -310,7 +355,7 @@ export default function CreateUserPage() {
             {/* Submit Button */}
             <Button
               type="submit"
-              disabled={loading || !formData.email || !formData.full_name || !formData.password}
+              disabled={loading || !formData.email || !formData.full_name || !formData.password || (needsClub && !formData.club_id)}
               className="w-full"
               size="lg"
             >

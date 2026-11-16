@@ -12,10 +12,39 @@ export interface CreateAnnouncementInput {
   target_audience?: 'all' | 'athletes' | 'specific';
   is_pinned?: boolean;
   expires_at?: string;
+  /** Which of the coach's clubs the announcement is for (defaults to the first one). */
+  club_id?: string;
 }
 
-export interface UpdateAnnouncementInput extends Partial<CreateAnnouncementInput> {
+export interface UpdateAnnouncementInput extends Partial<Omit<CreateAnnouncementInput, 'club_id'>> {
   id: string;
+}
+
+/**
+ * The announcement, if the signed-in user may change it: its author (any of the
+ * coach's club rows) or an admin. Without this check any coach could edit or
+ * delete another coach's announcement.
+ */
+async function ownedAnnouncement(
+  db: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  announcementId: string
+): Promise<{ id: string; coach_id: string } | null> {
+  const { data: announcement } = await db
+    .from('announcements')
+    .select('id, coach_id')
+    .eq('id', announcementId)
+    .maybeSingle();
+  if (!announcement) return null;
+
+  const [{ data: coachRows }, { data: role }] = await Promise.all([
+    db.from('coaches').select('id').eq('user_id', userId),
+    db.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+  ]);
+  const coachIds = ((coachRows ?? []) as { id: string }[]).map((row) => row.id);
+  const isAdmin = (role as { role?: string } | null)?.role === 'admin';
+  const row = announcement as { id: string; coach_id: string };
+  return isAdmin || coachIds.includes(row.coach_id) ? row : null;
 }
 
 export async function createAnnouncement(input: CreateAnnouncementInput) {
@@ -30,13 +59,13 @@ export async function createAnnouncement(input: CreateAnnouncementInput) {
   }
 
   // Validate and sanitize input
-  const titleError = validateRequired(input.title, 'Announcement title') || 
+  const titleError = validateRequired(input.title, 'Announcement title') ||
                      validateLength(input.title, 3, 200, 'Announcement title');
   if (titleError) {
     return { success: false, error: titleError.message };
   }
 
-  const messageError = validateRequired(input.message, 'Details') || 
+  const messageError = validateRequired(input.message, 'Details') ||
                        validateLength(input.message, 10, 5000, 'Details');
   if (messageError) {
     return { success: false, error: messageError.message };
@@ -57,16 +86,19 @@ export async function createAnnouncement(input: CreateAnnouncementInput) {
   const sanitizedTitle = sanitizeInput(input.title);
   const sanitizedMessage = sanitizeHtml(input.message);
 
-  // Get coach profile
-  const { data: coach, error: coachError } = await db
-    .from('coaches')
-    .select('id, club_id')
-    .eq('user_id', user.id)
+  // Get the coach's row for the chosen club (a coach has one row per club)
+  let coachQuery = db.from('coaches').select('id, club_id').eq('user_id', user.id);
+  if (input.club_id) coachQuery = coachQuery.eq('club_id', input.club_id);
+  const { data: coach, error: coachError } = await coachQuery
+    .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
 
   if (coachError || !coach) {
-    return { success: false, error: 'Coach profile not found' };
+    return {
+      success: false,
+      error: input.club_id ? 'You can only post announcements to your own clubs' : 'Coach profile not found',
+    };
   }
 
   // Create announcement with sanitized data
@@ -74,6 +106,8 @@ export async function createAnnouncement(input: CreateAnnouncementInput) {
     .from('announcements')
     .insert({
       coach_id: (coach as any).id,
+      club_id: (coach as any).club_id,
+      created_by: user.id,
       title: sanitizedTitle,
       message: sanitizedMessage,
       priority: input.priority || 'normal',
@@ -111,7 +145,7 @@ export async function updateAnnouncement(input: UpdateAnnouncementInput) {
 
   // Validate if provided
   if (updates.title !== undefined) {
-    const titleError = validateRequired(updates.title, 'Announcement title') || 
+    const titleError = validateRequired(updates.title, 'Announcement title') ||
                        validateLength(updates.title, 3, 200, 'Announcement title');
     if (titleError) {
       return { success: false, error: titleError.message };
@@ -120,7 +154,7 @@ export async function updateAnnouncement(input: UpdateAnnouncementInput) {
   }
 
   if (updates.message !== undefined) {
-    const messageError = validateRequired(updates.message, 'Details') || 
+    const messageError = validateRequired(updates.message, 'Details') ||
                          validateLength(updates.message, 10, 5000, 'Details');
     if (messageError) {
       return { success: false, error: messageError.message };
@@ -137,6 +171,10 @@ export async function updateAnnouncement(input: UpdateAnnouncementInput) {
     if (priorityError) {
       return { success: false, error: priorityError.message };
     }
+  }
+
+  if (!(await ownedAnnouncement(db, user.id, id))) {
+    return { success: false, error: 'You can only edit your own announcements' };
   }
 
   const { data, error } = await (db as any)
@@ -169,6 +207,10 @@ export async function deleteAnnouncement(id: string) {
     return { success: false, error: 'User not found' };
   }
 
+  if (!(await ownedAnnouncement(db, user.id, id))) {
+    return { success: false, error: 'You can only delete your own announcements' };
+  }
+
   const { error } = await db.from('announcements').delete().eq('id', id);
 
   if (error) {
@@ -194,15 +236,11 @@ export async function getCoachAnnouncements() {
     return { success: false, error: 'User not found', data: [] };
   }
 
-  // Get coach profile
-  const { data: coach } = await db
-    .from('coaches')
-    .select('id, club_id')
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle();
+  // All of the coach's club rows (a coach has one row per club)
+  const { data: coachRows } = await db.from('coaches').select('id').eq('user_id', user.id);
+  const coachIds = ((coachRows ?? []) as { id: string }[]).map((row) => row.id);
 
-  if (!coach) {
+  if (coachIds.length === 0) {
     return { success: false, error: 'Coach profile not found', data: [] };
   }
 
@@ -215,7 +253,7 @@ export async function getCoachAnnouncements() {
       announcement_reads(count)
     `
     )
-    .eq('coach_id', (coach as any).id)
+    .in('coach_id', coachIds)
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false });
 

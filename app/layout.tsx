@@ -19,7 +19,8 @@ const geistMono = Geist_Mono({
 const bricolage = Bricolage_Grotesque({
   variable: '--font-bricolage',
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+  // Variable font (all weights 200–800). Listing static weights makes Google return
+  // `/l/font?kit=…` file URLs, which Turbopack's font loader cannot resolve (500 on every page).
 });
 
 const barlowCondensed = Barlow_Condensed({

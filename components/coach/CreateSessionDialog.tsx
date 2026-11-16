@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { SessionForm } from './SessionForm';
 
-export function CreateSessionDialog() {
+export function CreateSessionDialog({ clubs = [] }: { clubs?: { id: string; name: string }[] }) {
   const [open, setOpen] = useState(false);
 
   const handleSuccess = () => {
@@ -37,6 +37,7 @@ export function CreateSessionDialog() {
           </DialogDescription>
         </DialogHeader>
         <SessionForm
+          clubs={clubs}
           onSuccess={handleSuccess}
           onCancel={() => setOpen(false)}
         />
