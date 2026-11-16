@@ -5,7 +5,12 @@ import { HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { saveCheckIn } from '@/lib/nutrition/actions';
-import { CHECKIN_FIELDS, NOTE_MAX, type CheckInField, type CheckInScores } from '@/lib/nutrition/catalog';
+import {
+  CHECKIN_FIELDS,
+  NOTE_MAX,
+  type CheckInField,
+  type CheckInScores,
+} from '@/lib/nutrition/catalog';
 import { cn } from '@/lib/utils';
 
 interface WeeklyCheckInProps {
@@ -50,7 +55,9 @@ export function WeeklyCheckIn({ initial }: WeeklyCheckInProps) {
             Weekly check-in
           </h2>
           <p className="text-sm text-muted-foreground">
-            {saved ? 'Done for this week — you can still update it.' : 'How did you feel this week? 30 seconds.'}
+            {saved
+              ? 'Done for this week — you can still update it.'
+              : 'How did you feel this week? 30 seconds.'}
           </p>
         </div>
         <span className="flex size-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 ring-1 ring-inset ring-violet-100">
@@ -90,7 +97,8 @@ export function WeeklyCheckIn({ initial }: WeeklyCheckInProps) {
       </div>
 
       <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="checkin-note">
-        Anything to tell your coach? <span className="font-normal text-muted-foreground">(optional)</span>
+        Anything to tell your coach?{' '}
+        <span className="font-normal text-muted-foreground">(optional)</span>
       </label>
       <Input
         id="checkin-note"

@@ -14,6 +14,35 @@ export function hydrationGoal(sessionsToday: number): number {
 /** A coach is only warned about low hydration once an athlete has this many days of history. */
 export const MIN_DAYS_FOR_HYDRATION_FLAG = 3;
 
+export type TeamFlag = 'low_energy' | 'low_hydration' | 'not_logging';
+
+/**
+ * Prompts for a coach conversation (not a diagnosis). `staleBefore` is the first day that
+ * still counts as recent: nothing logged since then means "not logging".
+ */
+export function nutritionFlags(input: {
+  lastLog: string | null;
+  staleBefore: string;
+  hydrationPct: number;
+  hydrationDays: number;
+  checkIn: { energy: number; sleep: number; appetite: number; legs: number } | null;
+}): TeamFlag[] {
+  const { lastLog, staleBefore, hydrationPct, hydrationDays, checkIn } = input;
+  const flags: TeamFlag[] = [];
+  if (!lastLog || lastLog < staleBefore) flags.push('not_logging');
+  // Not on the first days: someone who started logging today is not "low", just new.
+  else if (hydrationDays >= MIN_DAYS_FOR_HYDRATION_FLAG && hydrationPct < 50)
+    flags.push('low_hydration');
+  if (
+    checkIn &&
+    (checkIn.energy <= 2 ||
+      (checkIn.energy + checkIn.sleep + checkIn.appetite + checkIn.legs) / 4 <= 2.5)
+  ) {
+    flags.push('low_energy');
+  }
+  return flags;
+}
+
 /**
  * Average share of the daily water goal an athlete reached (0–100).
  *
@@ -40,7 +69,10 @@ export function hydrationSummary(
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : null);
 
 /** One tip for today, based on the club's session schedule (`now` is `HH:MM:SS`). */
-export function trainingTip(sessions: SessionSlot[], now = clockNow()): { title: string; body: string } {
+export function trainingTip(
+  sessions: SessionSlot[],
+  now = clockNow()
+): { title: string; body: string } {
   const upcoming = sessions.find((s) => !s.start_time || s.start_time > now);
   const finished = [...sessions].reverse().find((s) => s.end_time && s.end_time <= now);
 
